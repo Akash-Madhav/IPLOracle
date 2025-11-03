@@ -7,8 +7,10 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 import numpy as np
 
 # === Paths & Models ===
-INDEX_PATH = r"C:\Users\Valarmathi\rag-healthcare-assistant\data\faiss.index"
-METADATA_PATH = r"C:\Users\Valarmathi\rag-healthcare-assistant\data\metadata.pkl"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+INDEX_PATH = os.path.join(BASE_DIR, "data", "faiss.index")
+METADATA_PATH = os.path.join(BASE_DIR, "data", "metadata.json")
+
 
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
