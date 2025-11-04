@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+google-generativeai
+faiss-cpu
+sentence-transformers
+tqdm
+pandas
+dotenv

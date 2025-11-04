@@ -1,58 +1,63 @@
-import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { motion } from 'motion/react';
 
 export function AnimatedBackground() {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number; duration: number }>>([]);
-
-  useEffect(() => {
-    // Generate random particles
-    const newParticles = Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      delay: Math.random() * 5,
-      duration: 10 + Math.random() * 20,
-    }));
-    setParticles(newParticles);
-  }, []);
-
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Main gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-cyan-50/30 to-teal-50/40 dark:from-slate-950 dark:via-cyan-950/20 dark:to-teal-950/30 animate-gradient" />
-      
-      {/* Mesh gradient overlay */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-20">
-        <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-gradient-radial from-cyan-400/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse-glow" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-gradient-radial from-teal-400/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 bg-gradient-radial from-purple-400/10 via-transparent to-transparent rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: "2s" }} />
-      </div>
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Animated Orb 1 - Orange/Amber (Top Left) */}
+      <motion.div
+        className="absolute -top-40 -left-40 w-96 h-96 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full opacity-30 blur-[120px]"
+        animate={{
+          x: [0, 100, -50, 0],
+          y: [0, -100, 50, 0],
+        }}
+        transition={{
+          duration: 30,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
 
-      {/* Floating particles */}
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="absolute w-1 h-1 bg-cyan-400/40 dark:bg-cyan-400/30 rounded-full"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-          }}
-          animate={{
-            y: [0, -100, 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0],
-          }}
-          transition={{
-            duration: particle.duration,
-            repeat: Infinity,
-            delay: particle.delay,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+      {/* Animated Orb 2 - Purple/Pink (Top Right) */}
+      <motion.div
+        className="absolute -top-20 -right-20 w-[500px] h-[500px] bg-gradient-to-br from-purple-500 to-pink-500 rounded-full opacity-25 blur-[150px]"
+        animate={{
+          x: [0, -80, 60, 0],
+          y: [0, 100, -80, 0],
+        }}
+        transition={{
+          duration: 35,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
 
-      {/* Subtle grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:100px_100px] dark:bg-[linear-gradient(rgba(6,182,212,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.02)_1px,transparent_1px)]" />
+      {/* Animated Orb 3 - Blue/Cyan (Bottom Left) */}
+      <motion.div
+        className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full opacity-20 blur-[140px]"
+        animate={{
+          x: [0, 120, -100, 0],
+          y: [0, -80, 100, 0],
+        }}
+        transition={{
+          duration: 40,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
+
+      {/* Animated Orb 4 - Teal/Emerald (Bottom Right) */}
+      <motion.div
+        className="absolute -bottom-40 -right-40 w-[550px] h-[550px] bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full opacity-25 blur-[130px]"
+        animate={{
+          x: [0, -100, 80, 0],
+          y: [0, 80, -60, 0],
+        }}
+        transition={{
+          duration: 38,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
     </div>
   );
 }

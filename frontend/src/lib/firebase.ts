@@ -1,12 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC6T_ltsKFhHZhB528m157d0opolFoZjuM",
   authDomain: "n8n-medi-rag.firebaseapp.com",
+  databaseURL: "https://n8n-medi-rag-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "n8n-medi-rag",
   storageBucket: "n8n-medi-rag.firebasestorage.app",
   messagingSenderId: "829241911025",
@@ -19,12 +19,8 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 
-// Initialize Analytics (optional - only works in browser)
-let analytics;
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
-}
-
-export { analytics };
+// Initialize Firestore with settings to handle connection issues gracefully
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+});

@@ -1,7 +1,7 @@
 
-  # Modern Chatbot Interface Design
+  # Complete IPL Oracle Chatbot
 
-  This is a code bundle for Modern Chatbot Interface Design. The original project is available at https://www.figma.com/design/UNQyR41FwXEV8ezOFCZqvh/Modern-Chatbot-Interface-Design.
+  This is a code bundle for Complete IPL Oracle Chatbot. The original project is available at https://www.figma.com/design/4SYbExNRTLswzX6xYOgf4P/Complete-IPL-Oracle-Chatbot.
 
   ## Running the code
 

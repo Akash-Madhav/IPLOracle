@@ -7,7 +7,7 @@ import { ChatHeader } from "./components/ChatHeader";
 import { ChatMessage } from "./components/ChatMessage";
 import { ChatInput } from "./components/ChatInput";
 import { TypingIndicator } from "./components/TypingIndicator";
-import { MedicalDisclaimer } from "./components/MedicalDisclaimer";
+import { IPLDisclaimer } from "./components/IPLDisclaimer";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 
@@ -20,11 +20,14 @@ interface Message {
 
 function ChatApp() {
   const { currentUser } = useAuth();
-  const [authView, setAuthView] = useState<"login" | "register">("login");
+  const [authView, setAuthView] = useState<
+    "login" | "register"
+  >("login");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] =
+    useState(true);
 
   // ✅ Always dark mode
   useEffect(() => {
@@ -35,7 +38,7 @@ function ChatApp() {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: "welcome",
-      text: "👩‍⚕️ Hello! I'm Dr. Athena, your assistant. Ask your question — whether it's medical or sports related — and I'll help you with accurate insights!",
+      text: "🏏 Hello! I'm IPL Oracle, your ultimate cricket intelligence assistant. Ask me anything about IPL stats, players, teams, matches, or predictions. Let's talk cricket!",
       isUser: false,
       timestamp: new Date(),
     };
@@ -46,7 +49,8 @@ function ChatApp() {
   // ✅ Auto scroll to latest message
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop =
+        scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
@@ -66,11 +70,14 @@ function ChatApp() {
     try {
       console.log("🟡 Sending query to backend:", text);
 
-      const response = await fetch("http://127.0.0.1:8000/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text }),
-      });
+      const response = await fetch(
+        "http://127.0.0.1:8000/ask",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: text }),
+        },
+      );
 
       console.log("🟢 Received response:", response);
 
@@ -100,7 +107,7 @@ function ChatApp() {
           fullBotText += `\n\n📚 **Sources:**\n${resources
             .map(
               (s: any, i: number) =>
-                `${i + 1}. ${s.name}: ${s.snippet || ""}`
+                `${i + 1}. ${s.name}: ${s.snippet || ""}`,
             )
             .join("\n")}`;
         }
@@ -133,7 +140,9 @@ function ChatApp() {
   // ✅ Auth handling
   if (!currentUser) {
     return authView === "login" ? (
-      <Login onSwitchToRegister={() => setAuthView("register")} />
+      <Login
+        onSwitchToRegister={() => setAuthView("register")}
+      />
     ) : (
       <Register onSwitchToLogin={() => setAuthView("login")} />
     );
@@ -145,11 +154,11 @@ function ChatApp() {
       <AnimatedBackground />
       <div className="relative z-10 h-screen flex flex-col">
         <ChatHeader />
-        <MedicalDisclaimer />
+        <IPLDisclaimer />
         <div className="flex-1 overflow-hidden">
           <div
             ref={scrollRef}
-            className="h-full overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent"
+            className="h-full overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-orange-500/20 scrollbar-track-transparent"
           >
             <div className="max-w-6xl mx-auto">
               {isLoadingHistory ? (
@@ -161,7 +170,7 @@ function ChatApp() {
                       repeat: Infinity,
                       ease: "linear",
                     }}
-                    className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full"
+                    className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full"
                   />
                 </div>
               ) : (
@@ -191,7 +200,10 @@ function ChatApp() {
             </div>
           </div>
         </div>
-        <ChatInput onSendMessage={handleSendMessage} disabled={isTyping} />
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          disabled={isTyping}
+        />
       </div>
     </div>
   );
