@@ -35,7 +35,7 @@ function ChatApp() {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: "welcome",
-      text: "👩‍⚕️ Hello! I'm Dr. Athena, your medical insight assistant. Ask your medical questions and I'll provide evidence-based insights. How can I help you today?",
+      text: "👩‍⚕️ Hello! I'm Dr. Athena, your assistant. Ask your question — whether it's medical or sports related — and I'll help you with accurate insights!",
       isUser: false,
       timestamp: new Date(),
     };
@@ -77,30 +77,36 @@ function ChatApp() {
       const data = await response.json();
       console.log("🔵 Backend JSON:", data);
 
-      // ✅ Handle backend JSON structure
-      const concise = data?.answer?.concise || "";
-      const context = data?.answer?.context || "";
-      const resources =
-        data?.answer?.resources && Array.isArray(data.answer.resources)
+      // ✅ Handle both structured and plain text responses
+      let fullBotText = "";
+
+      if (typeof data.answer === "string") {
+        // Plain string (like IPL bot)
+        fullBotText = data.answer;
+      } else if (typeof data.answer === "object") {
+        // Structured medical response
+        const concise = data.answer.concise || "";
+        const context = data.answer.context || "";
+        const resources = Array.isArray(data.answer.resources)
           ? data.answer.resources
           : [];
 
-      const botText =
-        concise || context
-          ? `**🩺 Concise:** ${concise}\n\n**📖 Context:** ${context}`
-          : "⚠️ No response received from backend.";
+        fullBotText =
+          concise || context
+            ? `**🩺 Concise:** ${concise}\n\n**📖 Context:** ${context}`
+            : "⚠️ No detailed response from backend.";
 
-      const sourcesText =
-        resources.length > 0
-          ? `\n\n📚 **Sources:**\n${resources
-              .map(
-                (s: any, i: number) =>
-                  `${i + 1}. ${s.name}: ${s.snippet || ""}`
-              )
-              .join("\n")}`
-          : "";
-
-      const fullBotText = botText + sourcesText;
+        if (resources.length > 0) {
+          fullBotText += `\n\n📚 **Sources:**\n${resources
+            .map(
+              (s: any, i: number) =>
+                `${i + 1}. ${s.name}: ${s.snippet || ""}`
+            )
+            .join("\n")}`;
+        }
+      } else {
+        fullBotText = "⚠️ Unexpected backend response format.";
+      }
 
       const botMsg: Message = {
         id: `bot-${Date.now()}`,
