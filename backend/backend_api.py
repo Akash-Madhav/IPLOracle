@@ -49,7 +49,7 @@ async def load_resources():
     print("🔔 Startup event triggered")
     global model, index, metadata
     print("📦 Loading FAISS index and metadata...")
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
     index = faiss.read_index(INDEX_PATH)
     with open(META_PATH, "r", encoding="utf-8") as f:
         metadata = json.load(f)
