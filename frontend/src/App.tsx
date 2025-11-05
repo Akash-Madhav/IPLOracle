@@ -71,7 +71,7 @@ function ChatApp() {
       console.log("🟡 Sending query to backend:", text);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/ask",
+        "${import.meta.env.VITE_API_URL}/ask",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

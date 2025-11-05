@@ -47,6 +47,9 @@ else:
 @app.get("/")
 def home():
     return {"message": "🏏 IPL Insight Bot backend is running!"}
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 
 @app.post("/ask")
