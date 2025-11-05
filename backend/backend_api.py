@@ -1,28 +1,25 @@
 # ==========================================================
 #  🏏 IPL Insight Bot - FastAPI + FAISS + Gemini Integration
 # ==========================================================
-import sys
-import traceback
+import os, sys, traceback
+
+print("🚀 FastAPI app initializing...")
+print("📂 Working directory:", os.getcwd())
 
 try:
-    print("🚀 FastAPI app initializing...")
-    import os
-    print("📂 Working directory:", os.getcwd())
+    base_dir = os.path.dirname(__file__)
+    INDEX_PATH = os.path.join(base_dir, "data", "faiss.index")
+    META_PATH = os.path.join(base_dir, "data", "metadata.json")
 
-    assert os.path.exists("backend/data/faiss.index"), "❌ FAISS index not found"
-    assert os.path.exists("backend/data/metadata.json"), "❌ Metadata file not found"
+    assert os.path.exists(INDEX_PATH), "❌ FAISS index not found"
+    assert os.path.exists(META_PATH), "❌ Metadata file not found"
     print("✅ FAISS index and metadata loaded")
 
 except Exception as e:
     print("🔥 Startup crash detected:")
     traceback.print_exc()
     sys.exit(1)
-import os
-print("🚀 FastAPI app initialized")
-print("📂 Working directory:", os.getcwd())
-assert os.path.exists("backend/data/faiss.index"), "❌ FAISS index not found"
-assert os.path.exists("backend/data/metadata.json"), "❌ Metadata file not found"
-print("✅ FAISS index and metadata loaded")
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import faiss, numpy as np, json, os
@@ -32,8 +29,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file
 # ---- Config ----
-INDEX_PATH = "backend/data/faiss.index"
-META_PATH = "backend/data/metadata.json"
+
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")  # set this in .env or system env
 
 # ---- Initialize app ----
