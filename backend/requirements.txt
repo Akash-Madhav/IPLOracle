@@ -6,4 +6,5 @@ faiss-cpu
 sentence-transformers
 tqdm
 pandas
+psutil
 gunicorn>=20.1.0

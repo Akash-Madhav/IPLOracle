@@ -132,8 +132,7 @@ async def ask_query(request: Request):
         answer = f"Top similar records found:\n{context}"
 
     return {"query": query, "answer": answer, "results": results}
-''''import os, sys, traceback
-
+'''
 print("🚀 FastAPI app initializing...")
 print("📂 Working directory:", os.getcwd())
 
