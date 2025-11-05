@@ -1,6 +1,22 @@
 # ==========================================================
 #  🏏 IPL Insight Bot - FastAPI + FAISS + Gemini Integration
 # ==========================================================
+import sys
+import traceback
+
+try:
+    print("🚀 FastAPI app initializing...")
+    import os
+    print("📂 Working directory:", os.getcwd())
+
+    assert os.path.exists("data/faiss.index"), "❌ FAISS index not found"
+    assert os.path.exists("data/metadata.json"), "❌ Metadata file not found"
+    print("✅ FAISS index and metadata loaded")
+
+except Exception as e:
+    print("🔥 Startup crash detected:")
+    traceback.print_exc()
+    sys.exit(1)
 import os
 print("🚀 FastAPI app initialized")
 print("📂 Working directory:", os.getcwd())
