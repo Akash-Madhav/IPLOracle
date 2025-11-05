@@ -6,5 +6,4 @@ faiss-cpu
 sentence-transformers
 tqdm
 pandas
-dotenv
-gunicorn==21.x.x
+gunicorn>=20.1.0
