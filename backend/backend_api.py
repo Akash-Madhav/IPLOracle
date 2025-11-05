@@ -102,7 +102,8 @@ async def ask_query(request: Request):
 
     return {"query": query, "answer": answer, "results": results}
 
-
+'''
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+'''
