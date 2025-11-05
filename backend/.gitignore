@@ -9,7 +9,7 @@ __pycache__/
 .env
 
 # Data and model artifacts (optional: comment out if you want to keep these in repo)
-data/
+#data/
 raw_data/
 
 # Jupyter Notebooks checkpoints
@@ -17,3 +17,9 @@ raw_data/
 
 # VSCode
 .vscode/
+
+#To add the data folder which contains the FAISS index and metadata
+!data/
+!data/faiss.index
+!data/metadata.json
+!data/ipl_matches.csv
