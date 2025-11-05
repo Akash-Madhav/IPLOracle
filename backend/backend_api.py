@@ -48,12 +48,30 @@ app.add_middleware(
 async def load_resources():
     print("🔔 Startup event triggered")
     global model, index, metadata
-    print("📦 Loading FAISS index and metadata...")
-    model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
-    index = faiss.read_index(INDEX_PATH)
-    with open(META_PATH, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
-    print("✅ Resources loaded")
+
+    try:
+        import psutil
+        print(f"🧠 Memory before model load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
+
+        print("📦 Loading SentenceTransformer model...")
+        model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
+        print("✅ Model loaded")
+
+        print("📦 Reading FAISS index...")
+        index = faiss.read_index(INDEX_PATH)
+        print("✅ FAISS index loaded")
+
+        print("📦 Loading metadata...")
+        with open(META_PATH, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+        print("✅ Metadata loaded")
+
+        print(f"🧠 Memory after startup: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
+
+    except Exception as e:
+        print("🔥 Startup crash detected:")
+        import traceback
+        traceback.print_exc()
 
 # Configure Gemini (if available)
 if GEMINI_KEY:
@@ -66,6 +84,7 @@ else:
 # ---- Routes ----
 @app.get("/")
 def home():
+    print("🌐 Root route accessed")
     return {"message": "🏏 IPL Insight Bot backend is running!"}
 @app.get("/health")
 def health_check():
