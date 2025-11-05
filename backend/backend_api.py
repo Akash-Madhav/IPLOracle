@@ -44,13 +44,15 @@ app.add_middleware(
 )
 
 # ---- Load models ----
-print("📦 Loading FAISS index and metadata...")
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-# Load FAISS & metadata safely
-index = faiss.read_index(INDEX_PATH)
-with open(META_PATH, "r", encoding="utf-8") as f:
-    metadata = json.load(f)
+@app.on_event("startup")
+async def load_resources():
+    global model, index, metadata
+    print("📦 Loading FAISS index and metadata...")
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    index = faiss.read_index(INDEX_PATH)
+    with open(META_PATH, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    print("✅ Resources loaded")
 
 # Configure Gemini (if available)
 if GEMINI_KEY:
