@@ -7,3 +7,4 @@ sentence-transformers
 tqdm
 pandas
 dotenv
+gunicorn==21.x.x
