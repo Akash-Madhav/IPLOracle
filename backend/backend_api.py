@@ -9,8 +9,8 @@ try:
     import os
     print("📂 Working directory:", os.getcwd())
 
-    assert os.path.exists("data/faiss.index"), "❌ FAISS index not found"
-    assert os.path.exists("data/metadata.json"), "❌ Metadata file not found"
+    assert os.path.exists("backend/data/faiss.index"), "❌ FAISS index not found"
+    assert os.path.exists("backend/data/metadata.json"), "❌ Metadata file not found"
     print("✅ FAISS index and metadata loaded")
 
 except Exception as e:
@@ -20,8 +20,8 @@ except Exception as e:
 import os
 print("🚀 FastAPI app initialized")
 print("📂 Working directory:", os.getcwd())
-assert os.path.exists("data/faiss.index"), "❌ FAISS index not found"
-assert os.path.exists("data/metadata.json"), "❌ Metadata file not found"
+assert os.path.exists("backend/data/faiss.index"), "❌ FAISS index not found"
+assert os.path.exists("backend/data/metadata.json"), "❌ Metadata file not found"
 print("✅ FAISS index and metadata loaded")
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,8 +32,8 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file
 # ---- Config ----
-INDEX_PATH = "data/faiss.index"
-META_PATH = "data/metadata.json"
+INDEX_PATH = "backend/data/faiss.index"
+META_PATH = "backend/data/metadata.json"
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")  # set this in .env or system env
 
 # ---- Initialize app ----
