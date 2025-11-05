@@ -46,6 +46,7 @@ app.add_middleware(
 # ---- Load models ----
 @app.on_event("startup")
 async def load_resources():
+    print("🔔 Startup event triggered")
     global model, index, metadata
     print("📦 Loading FAISS index and metadata...")
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
