@@ -1,7 +1,12 @@
 # ==========================================================
 #  🏏 IPL Insight Bot - FastAPI + FAISS + Gemini Integration
 # ==========================================================
-
+import os
+print("🚀 FastAPI app initialized")
+print("📂 Working directory:", os.getcwd())
+assert os.path.exists("data/faiss.index"), "❌ FAISS index not found"
+assert os.path.exists("data/metadata.json"), "❌ Metadata file not found"
+print("✅ FAISS index and metadata loaded")
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import faiss, numpy as np, json, os
