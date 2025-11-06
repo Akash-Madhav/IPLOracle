@@ -1,44 +1,55 @@
+# build_index.py
+# 🏏 Build FAISS index and metadata from IPL player stats
+
+import os
 import pandas as pd
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import json
-import os
+import logging
+from sentence_transformers import SentenceTransformer
 
-# === Paths ===
-DATA_PATH = "data/ipl_players.csv"
-INDEX_PATH = "data/faiss.index"
-META_PATH = "data/metadata.json"
+# 🔧 Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# === Load CSV ===
-df = pd.read_csv(DATA_PATH)
+# 📁 Paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "data", "ipl_players.csv")
+INDEX_PATH = os.path.join(BASE_DIR, "data", "faiss.index")
+META_PATH = os.path.join(BASE_DIR, "data", "metadata.json")
 
-# 🧩 Combine all info into a single text field for semantic search
-df["combined_text"] = df.apply(
-    lambda x: (
-        f"{x['Player_Name']} played in {x['Year']} scoring {x['Runs_Scored']} runs "
-        f"at an average of {x['Batting_Average']} with {x['Wickets_Taken']} wickets. "
-        f"Strike Rate: {x['Batting_Strike_Rate']}. "
-        f"Role: Batter/Bowler/All-Rounder (inferred)."
-    ),
-    axis=1
-)
+def build_index():
+    logger.info("📥 Reading IPL player data...")
+    df = pd.read_csv(DATA_PATH)
 
-# === Create Embeddings ===
-print("🔄 Generating embeddings...")
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-embeddings = model.encode(df["combined_text"].tolist(), convert_to_numpy=True, show_progress_bar=True)
+    # 🧩 Combine fields for semantic embedding
+    df["combined_text"] = df.apply(
+        lambda x: (
+            f"{x['Player_Name']} played in {x['Year']} scoring {x['Runs_Scored']} runs "
+            f"at an average of {x['Batting_Average']} with {x['Wickets_Taken']} wickets. "
+            f"Strike Rate: {x['Batting_Strike_Rate']}. Role: Batter/Bowler/All-Rounder (inferred)."
+        ),
+        axis=1
+    )
 
-# === Build FAISS Index ===
-dimension = embeddings.shape[1]
-index = faiss.IndexFlatL2(dimension)
-index.add(embeddings)
+    logger.info("🔄 Generating embeddings...")
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = model.encode(df["combined_text"].tolist(), convert_to_numpy=True, show_progress_bar=True)
 
-# === Save Index & Metadata ===
-os.makedirs("data", exist_ok=True)
-faiss.write_index(index, INDEX_PATH)
+    logger.info("📦 Building FAISS index...")
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(embeddings)
 
-with open(META_PATH, "w", encoding="utf-8") as f:
-    json.dump(df.to_dict(orient="records"), f, indent=2)
+    logger.info("💾 Saving index and metadata...")
+    os.makedirs(os.path.join(BASE_DIR, "data"), exist_ok=True)
+    faiss.write_index(index, INDEX_PATH)
 
-print("✅ FAISS index built and saved successfully!")
+    with open(META_PATH, "w", encoding="utf-8") as f:
+        json.dump(df.to_dict(orient="records"), f, indent=2)
+
+    logger.info("✅ FAISS index and metadata saved successfully!")
+
+if __name__ == "__main__":
+    build_index()
