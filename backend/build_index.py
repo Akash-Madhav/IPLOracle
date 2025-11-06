@@ -22,6 +22,12 @@ META_PATH = os.path.join(BASE_DIR, "data", "metadata.json")
 def build_index():
     logger.info("📥 Reading IPL player data...")
     df = pd.read_csv(DATA_PATH)
+    unique_players = df["Player_Name"].nunique()
+    logger.info(f"🧠 Total unique players embedded: {unique_players}")
+
+    sample_names = df["Player_Name"].dropna().unique()[:5]
+    logger.info(f"🔎 Sample players: {sample_names}")
+
 
     # 🧩 Combine fields for semantic embedding
     df["combined_text"] = df.apply(

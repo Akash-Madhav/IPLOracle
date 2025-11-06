@@ -17,7 +17,7 @@ def load_resources():
 
     print(f"🧠 Memory before load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
 
-    model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
+    model = SentenceTransformer("all-MiniLM-L12-v2")
     index = faiss.read_index(INDEX_PATH)
 
     with open(META_PATH, "r", encoding="utf-8") as f:
