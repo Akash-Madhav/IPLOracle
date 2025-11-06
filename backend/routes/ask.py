@@ -11,15 +11,16 @@ logger = logging.getLogger(__name__)
 
 # 🔍 Token-based fuzzy filter
 def filter_results(raw_results, query):
-    tokens = query.lower().split()
+    query_lower = query.lower()
     filtered = []
 
     for r in raw_results:
-        name_match = any(t in r["Player_Name"].lower() for t in tokens)
-        year_match = any(t in r["Year"].lower() for t in tokens)
-        stat_match = any(t in r["combined_text"].lower() for t in tokens)
-        role_match = any(t in r.get("Role", "").lower() for t in tokens)
-        if name_match or year_match or stat_match or role_match:
+        name = r["Player_Name"].lower()
+        year = r["Year"].lower()
+        combined = r["combined_text"].lower()
+        role = r.get("Role", "").lower()
+
+        if query_lower in name or query_lower in year or query_lower in combined or query_lower in role:
             filtered.append(r)
 
     return filtered if filtered else raw_results
