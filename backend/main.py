@@ -3,10 +3,12 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.ask import ask_router
-from services.loader import load_resources
-from services.gemini import configure_gemini
-from routes.admin import admin_router
+from backend.routes.ask import ask_router
+from backend.routes.admin import admin_router
+from backend.services.loader import load_resources
+from backend.services.gemini import configure_gemini
+
+# 🚀 FastAPI app initialization
 app = FastAPI(
     title="🏏 IPL Insight Bot + Gemini",
     description="Semantic IPL stats search powered by FAISS and Gemini",
