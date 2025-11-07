@@ -4,10 +4,10 @@ print("✅ main.py loaded")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes.ask import ask_router
-from backend.routes.admin import admin_router
-from backend.services.loader import load_resources
-from backend.services.gemini import configure_gemini
+from routes.ask import ask_router
+from routes.admin import admin_router
+from services.loader import load_resources
+from services.gemini import configure_gemini
 import threading
 # 🚀 FastAPI app initialization
 app = FastAPI(
