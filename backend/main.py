@@ -1,5 +1,6 @@
 # main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
+print("✅ main.py loaded")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,9 +38,9 @@ async def startup_event():
     print("✅ Startup setup complete")
 
 # 🌐 Root route
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
-    return {"message": "🏏 IPL Insight Bot backend is running!"}
+    return {"status": "ok", "message": "🏏 IPL Insight Bot backend is running!"}
 
 # ❤️ Health check
 @app.get("/health")
