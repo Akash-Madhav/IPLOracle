@@ -37,7 +37,7 @@ async def startup_event():
     print("🔔 Startup triggered")
     # ✅ Run heavy tasks on background threads so port opens immediately
     threading.Thread(target=load_resources).start()
-    threading.Thread(target=configure_gemini).start()
+    configure_gemini()
 
     print("✅ Startup setup complete")
 
