@@ -9,6 +9,8 @@ from routes.admin import admin_router
 from services.loader import load_resources
 from services.gemini import configure_gemini
 import threading
+from fastapi.responses import FileResponse
+
 # 🚀 FastAPI app initialization
 app = FastAPI(
     title="🏏 IPL Insight Bot + Gemini",
@@ -24,6 +26,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("static/favicon.ico")
 
 # 🔁 Startup hook
 # 🔁 Startup hook (NON-BLOCKING ✅)
