@@ -4,13 +4,12 @@ from dotenv import load_dotenv
 import logging
 
 logger = logging.getLogger(__name__)
-load_dotenv()
-
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 gemini_model = None
 
 def configure_gemini():
     global gemini_model
+    GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+    logger.info(f"GEMINI_API_KEY present at startup: {bool(GEMINI_KEY)}")
     if GEMINI_KEY:
         genai.configure(api_key=GEMINI_KEY)
         gemini_model = genai.GenerativeModel("gemini-2.5-flash")
