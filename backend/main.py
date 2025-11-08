@@ -30,7 +30,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     print("🔔 Startup triggered")
-
+    configure_gemini()
     # ✅ Run heavy tasks on background threads so port opens immediately
     threading.Thread(target=load_resources).start()
     threading.Thread(target=configure_gemini).start()
