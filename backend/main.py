@@ -35,8 +35,8 @@ async def favicon():
 async def startup_event():
     print("🔔 Startup triggered")
     # ✅ Run heavy tasks on background threads so port opens immediately
-    #threading.Thread(target=load_resources).start()
-    #threading.Thread(target=configure_gemini).start()
+    threading.Thread(target=load_resources).start()
+    threading.Thread(target=configure_gemini).start()
     print("✅ Startup setup complete")
 
 # 🌐 Root route
