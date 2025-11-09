@@ -9,7 +9,7 @@ from routes.admin import admin_router
 from services.loader import load_resources
 import threading
 from fastapi.responses import FileResponse
-
+from services.gemini import configure_gemini
 # 🚀 FastAPI app initialization
 app = FastAPI(
     title="🏏 IPL Insight Bot + Gemini",
@@ -36,7 +36,7 @@ async def startup_event():
     print("🔔 Startup triggered")
     # ✅ Run heavy tasks on background threads so port opens immediately
     threading.Thread(target=load_resources).start()
-
+    threading.Thread(target=configure_gemini).start()
     print("✅ Startup setup complete")
 
 # 🌐 Root route
