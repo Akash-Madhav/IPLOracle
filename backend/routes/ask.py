@@ -5,6 +5,8 @@ from services.gemini import generate_answer
 from pydantic import BaseModel
 from typing import List, Dict
 import logging
+import threading
+from services.gemini import configure_gemini
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,6 +36,7 @@ ask_router = APIRouter()
 
 @ask_router.post("/", response_model=AskResponse)
 async def ask_query(payload: QueryRequest):
+    threading.Thread(target=configure_gemini).start()
     query = payload.query.strip()
 
     if not query:
