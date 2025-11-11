@@ -3,6 +3,7 @@ FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Copy requirements and install
 COPY requirements.txt .
