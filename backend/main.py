@@ -1,6 +1,8 @@
 # main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
+import os
+print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

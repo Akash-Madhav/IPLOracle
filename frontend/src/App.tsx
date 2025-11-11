@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";

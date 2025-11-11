@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 10000
 
 # Start the app
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 50 --timeout-keep-alive 5
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --limit-concurrency 50 --timeout-keep-alive 5"]
