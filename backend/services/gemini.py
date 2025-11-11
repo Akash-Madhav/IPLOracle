@@ -1,11 +1,11 @@
 import os
 import google.generativeai as genai
-from dotenv import load_dotenv
 import logging
-
+if os.getenv("ENV") != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
 logger = logging.getLogger(__name__)
 gemini_model = None
-load_dotenv()
 def configure_gemini():
     global gemini_model
     GEMINI_KEY = os.getenv("GEMINI_API_KEY")

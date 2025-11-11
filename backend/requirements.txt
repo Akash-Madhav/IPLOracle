@@ -3,6 +3,4 @@ uvicorn
 faiss-cpu
 sentence-transformers
 google-generativeai
-python-dotenv
 psutil
-pandas
