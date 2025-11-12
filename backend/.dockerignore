@@ -4,3 +4,5 @@ __pycache__/
 venv/
 .env
 dev-requirements.txt
+# Ignore frontend and legacy files
+frontend/
