@@ -1,6 +1,6 @@
 # services/loader.py
 
-import os, json, faiss, numpy as np
+import os, json, faiss
 from sentence_transformers import SentenceTransformer
 import psutil
 
@@ -9,22 +9,29 @@ DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 INDEX_PATH = os.path.join(DATA_DIR, "faiss.index")
 META_PATH = os.path.join(DATA_DIR, "metadata.json")
 
-model, index, metadata = None, None, None
+_model, _index, _metadata = None, None, None
 
 def load_resources():
-    global model, index, metadata
+    global _index, _metadata
     print("🔔 Loading backend resources...")
 
     print(f"🧠 Memory before load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
 
-    model = SentenceTransformer("paraphrase-MiniLM-L6-v2", device="cpu")
-    index = faiss.read_index(INDEX_PATH)
+    # Lazy-load model later
+    _index = faiss.read_index(INDEX_PATH)
 
     with open(META_PATH, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
+        _metadata = json.load(f)
 
     print(f"🧠 Memory after load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
     print("✅ Resources loaded")
 
+def get_model():
+    global _model
+    if _model is None:
+        print("🧠 Lazy-loading SentenceTransformer...")
+        _model = SentenceTransformer("paraphrase-MiniLM-L6-v2", device="cpu")
+    return _model
+
 def get_resources():
-    return model, index, metadata
+    return get_model(), _index, _metadata
