@@ -3,3 +3,4 @@ uvicorn
 sentence-transformers
 google-generativeai
 psutil
+faiss-cpu

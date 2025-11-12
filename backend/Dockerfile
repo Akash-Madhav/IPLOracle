@@ -1,5 +1,5 @@
 # Use official Python image
-FROM python:3.12-slim
+FROM python:3.12-slim-bullseye
 
 # Set working directory
 WORKDIR /app
@@ -17,3 +17,5 @@ EXPOSE 10000
 
 # Start the app
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --limit-concurrency 50 --timeout-keep-alive 5"]
+
+HEALTHCHECK CMD curl --fail http://localhost:10000/health || exit 1
