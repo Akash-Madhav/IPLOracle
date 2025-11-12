@@ -1,6 +1,7 @@
 import os
 import google.generativeai as genai
 import logging
+import ast
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
@@ -17,6 +18,37 @@ def configure_gemini():
     else:
         logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
 
+
+def get_embedding(text: str) -> list[float]:
+    if not gemini_model:
+        raise RuntimeError("Gemini model not configured")
+
+    MAX_CHARS = 2000  # ~600–700 tokens, safe for Gemini
+    if len(text) > MAX_CHARS:
+        logger.warning(f"⚠️ Text too long for embedding ({len(text)} chars); truncating.")
+        text = text[:MAX_CHARS]
+
+    logger.info(f"📏 Embedding input length: {len(text)} characters")
+
+    prompt = f"Generate a semantic embedding vector for this text:\n{text}\n\nReturn only a list of floats."
+
+    try:
+        logger.info(f"🧠 Gemini embedding prompt:\n{prompt}")
+        response = gemini_model.generate_content(prompt)
+        return parse_embedding(response.text)
+    except Exception as e:
+        logger.error(f"❌ Gemini embedding failed: {e}")
+        return []
+
+
+def parse_embedding(text: str) -> list[float]:
+    try:
+        return ast.literal_eval(text.strip())
+    except Exception as e:
+        logger.error(f"❌ Failed to parse embedding: {e}")
+        return []
+    
+    
 def generate_answer(query: str, context: str) -> str:
     if not gemini_model:
         return f"Top similar records found:\n{context}"

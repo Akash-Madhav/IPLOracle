@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 from models.query import QueryRequest
 from services.loader import get_resources
-from services.gemini import generate_answer
+from services.gemini import generate_answer, get_embedding  # ✅ Added get_embedding
 from pydantic import BaseModel
 from typing import List, Dict
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,9 @@ async def ask_query(payload: QueryRequest):
     if not query:
         return {"query": query, "answer": "⚠️ Please provide a question.", "results": []}
 
-    model, index, metadata = get_resources()
-    if not all([model, index, metadata]):
+    _, index, metadata = get_resources()  # ✅ Skip model
+
+    if not all([index, metadata]):
         return {"query": query, "answer": "⚠️ Backend resources not loaded. Please try again later.", "results": []}
 
     logger.info(f"🟢 Query received: {query}")
@@ -47,10 +49,10 @@ async def ask_query(payload: QueryRequest):
     try:
         # 🔁 Rephrase query to match combined_text structure
         query_for_embedding = f"Player stats for {query}"
-        query_emb = model.encode([query_for_embedding])
+        query_emb = [get_embedding(query_for_embedding)]  # ✅ Gemini embedding
 
         # 🔍 Search top 20 for broader semantic context
-        D, I = index.search(query_emb.astype("float32"), k=20)
+        D, I = index.search(query_emb, k=20)
         raw_results = [metadata[i] for i in I[0]]
 
         # 🔍 Apply fuzzy filter

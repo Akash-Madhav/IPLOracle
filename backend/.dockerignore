@@ -11,7 +11,3 @@ dev-requirements.txtx  # just in case the typo file exists
 
 # Ignore frontend and legacy files
 frontend/
-
-# Ignore stray requirements.txt files in subfolders
-**/requirements.txt
-!requirements.txt  # keep only the one you use
