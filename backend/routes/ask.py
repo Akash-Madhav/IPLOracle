@@ -65,6 +65,13 @@ async def ask_query(payload: QueryRequest):
             query_for_embedding = query_for_embedding[:MAX_CHARS]
 
         query_emb = [get_embedding(query_for_embedding)]
+        if not query_emb[0]:
+            logger.error("❌ Empty embedding returned from Gemini")
+            return {
+                "query": query,
+                "answer": "❌ Failed to generate embedding. Please try again later.",
+                "results": []
+            }
 
         D, I = index.search(query_emb, k=20)
         raw_results = [metadata[i] for i in I[0]]

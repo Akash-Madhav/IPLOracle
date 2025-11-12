@@ -19,27 +19,20 @@ def configure_gemini():
         logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
 
 
-def get_embedding(text: str) -> list[float]:
-    if not gemini_model:
-        raise RuntimeError("Gemini model not configured")
-
-    MAX_CHARS = 2000  # ~600–700 tokens, safe for Gemini
-    if len(text) > MAX_CHARS:
-        logger.warning(f"⚠️ Text too long for embedding ({len(text)} chars); truncating.")
-        text = text[:MAX_CHARS]
-
-    logger.info(f"📏 Embedding input length: {len(text)} characters")
-
-    prompt = f"Generate a semantic embedding vector for this text:\n{text}\n\nReturn only a list of floats."
-
+def get_embedding(text: str):
+    logger.info(f"🧠 Gemini embedding prompt: Player stats for {text}")
     try:
-        logger.info(f"🧠 Gemini embedding prompt:\n{prompt}")
-        response = gemini_model.generate_content(prompt)
-        return parse_embedding(response.text)
+        response = gemini_model.generate_content(f"Return a list of 768 floats as embedding for: {text}")
+        logger.info(f"📤 Gemini response: {response.text}")
+
+        embedding = parse_embedding(response.text)
+        if not embedding or len(embedding) != 768:
+            raise ValueError("Invalid embedding shape")
+
+        return embedding
     except Exception as e:
         logger.error(f"❌ Gemini embedding failed: {e}")
         return []
-
 
 def parse_embedding(text: str) -> list[float]:
     try:
