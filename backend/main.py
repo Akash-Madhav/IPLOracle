@@ -1,24 +1,26 @@
 # main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
+
 import os
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
 from services.loader import load_resources
-import threading
-from fastapi.responses import FileResponse
 from services.gemini import configure_gemini
+import threading
+
 # 🚀 FastAPI app initialization
 app = FastAPI(
     title="🏏 IPL Insight Bot + Gemini",
     description="Semantic IPL stats search powered by FAISS and Gemini",
     version="1.0"
 )
-app.include_router(admin_router)
+
 # 🔓 CORS setup
 app.add_middleware(
     CORSMiddleware,
@@ -27,16 +29,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 📬 Register routes
+app.include_router(admin_router)
+app.include_router(ask_router, prefix="/ask")
+
+# 🖼️ Favicon route
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("static/favicon.ico")
 
-# 🔁 Startup hook
 # 🔁 Startup hook (NON-BLOCKING ✅)
 @app.on_event("startup")
 async def startup_event():
     print("🔔 Startup triggered")
-    # ✅ Run heavy tasks on background threads so port opens immediately
     threading.Thread(target=load_resources).start()
     threading.Thread(target=configure_gemini).start()
     print("✅ Startup setup complete")
@@ -51,12 +57,8 @@ def home():
 def health():
     return {"status": "ok"}
 
-# 📬 Register routes
-app.include_router(ask_router, prefix="/ask")
-
-# 🏁 Main entry poin
-#if __name__ == "__main__":
-#    import os
-#    import uvicorn
-#   port = int(os.environ.get("PORT", 10000))
-#   uvicorn.run("main:app", host="0.0.0.0", port=port)
+# 🏁 Main entry point (optional for local dev)
+# if __name__ == "__main__":
+#     import uvicorn
+#     port = int(os.environ.get("PORT", 10000))
+#     uvicorn.run("main:app", host="0.0.0.0", port=port)
