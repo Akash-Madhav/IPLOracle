@@ -3,7 +3,7 @@
 import os
 import google.generativeai as genai
 import logging,gc
-
+import psutil
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
@@ -50,8 +50,20 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
     try:
         logger.info(f"🧠 Gemini prompt:\n{prompt}")
         response = gemini_model.generate_content(prompt)
-        gc.collect()  # 🔄 Added here
-        return response.text.strip()
+
+        # 🔍 Log full response object
+        logger.info(f"📦 Gemini raw response object: {response}")
+
+        gc.collect()
+
+        answer_text = response.text.strip()
+        logger.info(f"✅ Gemini answer:\n{answer_text}")
+
+        mem = psutil.Process().memory_info().rss / 1024**2
+        logger.info(f"🧠 Memory after Gemini generation: {mem:.2f} MiB")
+
+        return answer_text
+
     except Exception as e:
         logger.error(f"❌ Gemini generation failed: {e}")
         return f"Top similar records found:\n{context}"
