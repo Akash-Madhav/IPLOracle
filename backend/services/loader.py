@@ -25,7 +25,7 @@ def load_resources():
         {
             "Player_Name": entry.get("Player_Name"),
             "Year": entry.get("Year"),
-            "combined_text": entry.get("combined_text")
+            "combined_text": entry.get("combined_text")[:1000]
         }
         for entry in raw_metadata
     ]
