@@ -3,5 +3,5 @@ uvicorn[standard]
 google-generativeai
 psutil
 faiss-cpu==1.12.0
-sentence-transformers==2.2.2
-torch==2.1.0+cpu
+sentence-transformers
+torch==2.9.1
