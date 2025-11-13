@@ -2,7 +2,7 @@
 
 import os
 import google.generativeai as genai
-import logging
+import logging,gc
 
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
@@ -15,6 +15,7 @@ gemini_model = None
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
     gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+    gc.collect()  # 🔄 Added here
     logger.info("✅ Gemini model loaded")
 else:
     logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
@@ -49,6 +50,7 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
     try:
         logger.info(f"🧠 Gemini prompt:\n{prompt}")
         response = gemini_model.generate_content(prompt)
+        gc.collect()  # 🔄 Added here
         return response.text.strip()
     except Exception as e:
         logger.error(f"❌ Gemini generation failed: {e}")

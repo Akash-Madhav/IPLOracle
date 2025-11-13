@@ -4,7 +4,7 @@ print("✅ main.py loaded")
 import sys
 print("🧨 Startup reached", file=sys.stderr)
 
-import os
+import os,gc
 import psutil
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
@@ -46,6 +46,7 @@ async def favicon():
 async def startup_event():
     print("🔔 Startup triggered")
     threading.Thread(target=load_resources).start()
+    gc.collect()  # 🔄 Added here
     mem = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory usage at startup: {mem:.2f} MiB")
     print("✅ Resources loaded")

@@ -6,7 +6,7 @@ from services.embedding import get_embedding  # 🔄 Updated import
 from pydantic import BaseModel
 from typing import List, Dict
 import logging
-import time
+import time, gc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,7 +65,8 @@ async def ask_query(payload: QueryRequest):
             logger.warning(f"⚠️ Query too long ({len(query_for_embedding)} chars); truncating.")
             query_for_embedding = query_for_embedding[:MAX_CHARS]
 
-        query_emb = [get_embedding(query_for_embedding)]  # 🔄 Updated call
+        query_emb = [get_embedding(query_for_embedding)]
+        gc.collect()  # 🔄 Updated call
         if not query_emb[0]:
             logger.error("❌ Empty embedding returned from Google API")
             return {
@@ -77,7 +78,7 @@ async def ask_query(payload: QueryRequest):
         D, I = index.search(query_emb, k=20)
         raw_results = [metadata[i] for i in I[0]]
         results = filter_results(raw_results, query)
-
+        gc.collect()  # 🔄 Updated call
         logger.info(f"📊 FAISS distances: {D[0]}")
         logger.info(f"📊 Top results: {[r['Player_Name'] for r in results]}")
 

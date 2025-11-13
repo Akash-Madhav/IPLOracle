@@ -1,6 +1,6 @@
 # services/loader.py
 
-import os
+import os, gc
 import json
 import faiss
 import psutil
@@ -29,7 +29,8 @@ def load_resources():
         }
         for entry in raw_metadata
     ]
-
+    del raw_metadata
+    gc.collect()
     print(f"📦 Metadata entries loaded: {len(_metadata)}")
     print(f"🧠 Memory after metadata load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
     print("✅ Metadata loaded")
@@ -40,6 +41,7 @@ def get_index():
         print("🧠 Lazy-loading FAISS index...")
         print(f"🧠 Memory before index load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
         _index = faiss.read_index(INDEX_PATH)
+        gc.collect()
         print(f"🧠 Memory after index load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
         print("✅ FAISS index loaded")
     return _index

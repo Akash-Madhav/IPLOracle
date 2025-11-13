@@ -11,4 +11,3 @@ dev-requirements.txtx  # just in case the typo file exists
 
 # Ignore frontend and legacy files
 frontend/
-services/build_index.py
