@@ -2,6 +2,6 @@ fastapi
 uvicorn[standard]
 google-generativeai
 psutil
-faiss-cpu==1.7.4
+faiss-cpu==1.12.0
 sentence-transformers==2.2.2
 torch==2.1.0+cpu
