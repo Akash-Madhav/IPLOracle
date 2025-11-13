@@ -1,6 +1,8 @@
 # main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
+import sys
+print("🧨 Startup reached", file=sys.stderr)
 
 import os
 import psutil
