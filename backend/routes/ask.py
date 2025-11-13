@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from models.query import QueryRequest
 from services.loader import get_resources
-from services.gemini import generate_answer, get_embedding
+from services.gemini import generate_answer
+from services.embedding import get_embedding
 from pydantic import BaseModel
 from typing import List, Dict
 import logging

@@ -1,25 +1,29 @@
 # services/loader.py
 
-import os, json, faiss
-import psutil
+import os, json, faiss, psutil
+from sentence_transformers import SentenceTransformer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 INDEX_PATH = os.path.join(DATA_DIR, "faiss.index")
 META_PATH = os.path.join(DATA_DIR, "metadata.json")
 
-_index, _metadata = None, None  # ✅ Removed _model
+_index, _metadata = None, None
+
+# ✅ Eagerly load embedding model at module level
+print("🧠 Loading SentenceTransformer model...")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+print("✅ SentenceTransformer model loaded")
 
 def load_resources():
     global _metadata
     print("🔔 Loading backend resources...")
     print(f"🧠 Memory before load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
 
-    # Lazy-load FAISS index later
+    # Load metadata
     with open(META_PATH, "r", encoding="utf-8") as f:
         raw_metadata = json.load(f)
 
-    # Compress metadata: keep only essential fields
     _metadata = [
         {
             "Player_Name": entry.get("Player_Name"),
@@ -40,4 +44,4 @@ def get_index():
     return _index
 
 def get_resources():
-    return None, get_index(), _metadata  # ✅ Return None for model
+    return embedding_model, get_index(), _metadata

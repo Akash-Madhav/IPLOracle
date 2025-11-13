@@ -10,14 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
-from services.loader import load_resources
-from services.gemini import configure_gemini
+from services.loader import load_resources, embedding_model  # ✅ SentenceTransformer model
 import threading
 
 # 🚀 FastAPI app initialization
 app = FastAPI(
-    title="🏏 IPL Insight Bot + Gemini",
-    description="Semantic IPL stats search powered by FAISS and Gemini",
+    title="🏏 IPL Insight Bot",
+    description="Semantic IPL stats search powered by FAISS + SentenceTransformer + Gemini answers",
     version="1.0"
 )
 
@@ -44,7 +43,7 @@ async def favicon():
 async def startup_event():
     print("🔔 Startup triggered")
     threading.Thread(target=load_resources).start()
-    threading.Thread(target=configure_gemini).start()
+    print("✅ SentenceTransformer loaded")
     print("✅ Startup setup complete")
 
 # 🌐 Root route

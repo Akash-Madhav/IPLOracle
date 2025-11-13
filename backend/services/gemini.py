@@ -1,47 +1,24 @@
+# services/gemini.py
+
 import os
 import google.generativeai as genai
 import logging
-import ast
+
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
+
 logger = logging.getLogger(__name__)
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+
 gemini_model = None
-def configure_gemini():
-    global gemini_model
-    GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-    logger.info(f"GEMINI_API_KEY present at startup: {bool(GEMINI_KEY)}")
-    if GEMINI_KEY:
-        genai.configure(api_key=GEMINI_KEY)
-        gemini_model = genai.GenerativeModel("gemini-2.5-flash")
-        logger.info("✅ Gemini configured")
-    else:
-        logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
+if GEMINI_KEY:
+    genai.configure(api_key=GEMINI_KEY)
+    gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+    logger.info("✅ Gemini model loaded")
+else:
+    logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
 
-
-def get_embedding(text: str):
-    logger.info(f"🧠 Gemini embedding prompt: Player stats for {text}")
-    try:
-        response = gemini_model.generate_content(f"Return a list of 768 floats as embedding for: {text}")
-        logger.info(f"📤 Gemini response: {response.text}")
-
-        embedding = parse_embedding(response.text)
-        if not embedding or len(embedding) != 768:
-            raise ValueError("Invalid embedding shape")
-
-        return embedding
-    except Exception as e:
-        logger.error(f"❌ Gemini embedding failed: {e}")
-        return []
-
-def parse_embedding(text: str) -> list[float]:
-    try:
-        return ast.literal_eval(text.strip())
-    except Exception as e:
-        logger.error(f"❌ Failed to parse embedding: {e}")
-        return []
-    
-    
 def generate_answer(query: str, context: str) -> str:
     if not gemini_model:
         return f"Top similar records found:\n{context}"
