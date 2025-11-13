@@ -1,9 +1,8 @@
 # services/gemini.py
 
 import os
-import google.generativeai as genai
-import logging,gc
-import psutil
+import logging, gc, psutil, traceback
+
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
@@ -11,17 +10,9 @@ if os.getenv("ENV") != "production":
 logger = logging.getLogger(__name__)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
-gemini_model = None
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-    gemini_model = genai.GenerativeModel("gemini-2.5-flash")
-    gc.collect()  # 🔄 Added here
-    logger.info("✅ Gemini model loaded")
-else:
-    logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
-
 def generate_answer(query: str, context: str) -> str:
-    if not gemini_model:
+    if not GEMINI_KEY:
+        logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
         return f"Top similar records found:\n{context}"
 
     if not context.strip():
@@ -47,11 +38,16 @@ Instructions:
 Answer in the least amount of lines or words. Provide your result or conclusion alone.
 """
 
+    response = None
     try:
-        logger.info(f"🧠 Gemini prompt:\n{prompt}")
-        response = gemini_model.generate_content(prompt)
+        logger.info(f"🧠 Gemini prompt:\n{prompt[:500]}...")  # Truncated for safety
 
-        # 🔍 Log full response object
+        # 🔄 Lazy-load Gemini model here
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_KEY)
+        gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+
+        response = gemini_model.generate_content(prompt)
         logger.info(f"📦 Gemini raw response object: {response}")
 
         gc.collect()
@@ -66,4 +62,12 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
 
     except Exception as e:
         logger.error(f"❌ Gemini generation failed: {e}")
+        logger.debug(traceback.format_exc())
         return f"Top similar records found:\n{context}"
+
+    finally:
+        # ✅ Safe cleanup
+        for var in ["response", "prompt", "context"]:
+            if var in locals():
+                del locals()[var]
+        gc.collect()
