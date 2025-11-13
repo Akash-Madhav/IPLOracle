@@ -1,15 +1,8 @@
 # services/embedding.py
 
-from services.loader import embedding_model
-import logging
+from sentence_transformers import SentenceTransformer
 
-logger = logging.getLogger(__name__)
+_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")  # or L3-v2 for smaller footprint
 
-def get_embedding(text: str):
-    try:
-        embedding = embedding_model.encode(text, normalize_embeddings=True)
-        logger.info(f"✅ SentenceTransformer embedding shape: {len(embedding)}")
-        return embedding.tolist()
-    except Exception as e:
-        logger.error(f"❌ SentenceTransformer embedding failed: {e}")
-        return []
+def get_embedding(text: str) -> list[float]:
+    return _model.encode(text, convert_to_numpy=False).tolist()

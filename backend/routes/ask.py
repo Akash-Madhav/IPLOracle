@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from models.query import QueryRequest
 from services.loader import get_resources
 from services.gemini import generate_answer
-from services.embedding import get_embedding
+from services.embedding import get_embedding  # 🔄 Updated import
 from pydantic import BaseModel
 from typing import List, Dict
 import logging
@@ -51,7 +51,7 @@ async def ask_query(payload: QueryRequest):
     if not query:
         return {"query": query, "answer": "⚠️ Please provide a question.", "results": []}
 
-    _, index, metadata = get_resources()
+    index, metadata = get_resources()
 
     if not all([index, metadata]):
         return {"query": query, "answer": "⚠️ Backend resources not loaded. Please try again later.", "results": []}
@@ -65,9 +65,9 @@ async def ask_query(payload: QueryRequest):
             logger.warning(f"⚠️ Query too long ({len(query_for_embedding)} chars); truncating.")
             query_for_embedding = query_for_embedding[:MAX_CHARS]
 
-        query_emb = [get_embedding(query_for_embedding)]
+        query_emb = [get_embedding(query_for_embedding)]  # 🔄 Updated call
         if not query_emb[0]:
-            logger.error("❌ Empty embedding returned from Gemini")
+            logger.error("❌ Empty embedding returned from Google API")
             return {
                 "query": query,
                 "answer": "❌ Failed to generate embedding. Please try again later.",
