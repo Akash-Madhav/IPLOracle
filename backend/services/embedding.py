@@ -9,7 +9,7 @@ def get_model():
     global model
     if model is None:
         print("🔥 Loading MiniLM model (lazy)...")
-        model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
+        model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
         print("✅ MiniLM loaded")
     return model
 
