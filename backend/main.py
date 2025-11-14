@@ -35,6 +35,14 @@ app.add_middleware(
 app.include_router(admin_router)
 app.include_router(ask_router, prefix="/ask")
 
+@app.get("/warmup")
+def warmup():
+    from services.loader import get_resources
+    from services.embedding import get_embedding
+    get_resources()
+    get_embedding("warmup")
+    return {"status": "warmed"}
+
 # 🖼️ Favicon route
 @app.get("/favicon.ico")
 async def favicon():

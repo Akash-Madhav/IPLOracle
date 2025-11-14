@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from models.query import QueryRequest, AskResponse
-import logging, time
+import logging, time, psutil
 
 from services.loader import get_resources, clear_resources
 from services.embedding import get_embedding, clear_model
@@ -30,6 +30,10 @@ def filter_results(raw_results, query):
             f.append(r)
     return f if f else raw_results
 
+@ask_router.post("", include_in_schema=False)
+async def ask_query_redirect_safe(payload: QueryRequest):
+    return await ask_query(payload)
+
 @ask_router.post("/", response_model=AskResponse)
 async def ask_query(payload: QueryRequest):
     global index, metadata
@@ -46,19 +50,43 @@ async def ask_query(payload: QueryRequest):
         print("🔥 Loading FAISS + metadata...")
         index, metadata = get_resources()
 
+    t0 = time.time()
     emb_text = f"Player stats for {query}"
     query_emb = [get_embedding(emb_text)]
+    print(f"⏱ Embedding: {time.time() - t0:.2f}s")
 
+    t1 = time.time()
     D, I = index.search(query_emb, k=20)
+    print(f"⏱ FAISS search: {time.time() - t1:.2f}s")
+
+    t2 = time.time()
     raw_results = [metadata[i] for i in I[0]]
     results = filter_results(raw_results, query)
+    print(f"⏱ Filtering: {time.time() - t2:.2f}s")
+
     clear_model()
-    context = "\n".join([r["combined_text"] for r in results])
-    answer = generate_answer(query, context)
-    logger.info(f"⏱ Query processed in {time.time() - start_time:.2f}s")
+
+    # Trim context to top 3 results
+    context = "\n".join([r["combined_text"] for r in results[:3]])
+
+    t3 = time.time()
+    try:
+        answer = generate_answer(query, context)
+    except Exception as e:
+        answer = "⚠️ Answer generation timed out. Please try again."
+        logger.error(f"Gemini error: {e}")
+    print(f"⏱ Gemini: {time.time() - t3:.2f}s")
+
     clear_resources()
 
+    # Log memory after query
+    mem_used = psutil.Process().memory_info().rss / 1024**2
+    print(f"🧠 Memory after query: {mem_used:.2f} MiB")
+
+    print(f"⏱ Total query time: {time.time() - start_time:.2f}s")
+
     return {"query": query, "answer": answer, "results": results}
+
 @ask_router.on_event("shutdown")
 def shutdown_event():
     clear_resources()
