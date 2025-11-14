@@ -2,18 +2,14 @@ from fastapi import APIRouter
 from models.query import QueryRequest, AskResponse
 import logging, time
 
-# preload everything once
+# lazy-global imports
 from services.loader import get_resources
 from services.embedding import get_embedding
 from services.gemini import generate_answer
 
-# load FAISS + metadata globally
-index, metadata = get_resources()
-
 logger = logging.getLogger(__name__)
 
 ask_router = APIRouter()
-
 
 @ask_router.get("/")
 async def ask_info():
@@ -45,12 +41,15 @@ async def ask_query(payload: QueryRequest):
 
     logger.info(f"🟢 Query received: {query}")
 
-    # 1️⃣ Generate embedding (model already loaded)
+    # 🔥 Lazy load FAISS + metadata (safe for Render)
+    index, metadata = get_resources()
+
+    # 1️⃣ Generate embedding (lazy model load happens internally)
     emb_text = f"Player stats for {query}"
-    query_emb = [get_embedding(emb_text)]
+    embedding = get_embedding(emb_text)
 
     # 2️⃣ FAISS search
-    D, I = index.search(query_emb, k=20)
+    D, I = index.search([embedding], k=20)
     raw_results = [metadata[i] for i in I[0]]
     results = filter_results(raw_results, query)
 
@@ -61,4 +60,3 @@ async def ask_query(payload: QueryRequest):
     logger.info(f"⏱ Query processed in {time.time() - start_time:.2f}s")
 
     return {"query": query, "answer": answer, "results": results}
-
