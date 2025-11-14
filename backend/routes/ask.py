@@ -1,10 +1,5 @@
 from fastapi import APIRouter
-from models.query import QueryRequest
-from services.loader import get_resources
-from services.gemini import generate_answer
-from services.embedding import get_embedding
-from pydantic import BaseModel
-from typing import List, Dict
+from models.query import QueryRequest, AskResponse
 import logging
 import time
 import gc
@@ -30,11 +25,6 @@ def filter_results(raw_results, query):
 
     return filtered if filtered else raw_results
 
-class AskResponse(BaseModel):
-    query: str
-    answer: str
-    results: List[Dict]
-
 ask_router = APIRouter()
 
 @ask_router.get("/")
@@ -50,6 +40,18 @@ async def ask_query(payload: QueryRequest):
 
     if not query:
         return {"query": query, "answer": "⚠️ Please provide a question.", "results": []}
+
+    # ⏳ Delayed imports to avoid startup memory bloat
+    from services.loader import get_resources
+    from services.embedding import get_embedding
+    from services.gemini import generate_answer
+
+    # 🧠 Limit torch threads to reduce memory spikes
+    try:
+        import torch
+        torch.set_num_threads(1)
+    except Exception:
+        pass
 
     index, metadata = get_resources()
 
