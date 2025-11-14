@@ -1,21 +1,29 @@
 # services/embedding.py
+
 import gc
-from sentence_transformers import SentenceTransformer
 import torch
 import psutil
-  # or L3-v2 for smaller footprint
-_model = None
-def log_memory():
-    process = psutil.Process()
-    print(f"🧠 Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
+
+def log_memory(tag=""):
+    mem = psutil.Process().memory_info().rss / 1024**2
+    print(f"🧠 Memory {tag}: {mem:.2f} MiB")
 
 def get_embedding(text: str) -> list[float]:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
-        gc.collect()
-        log_memory() 
+    from sentence_transformers import SentenceTransformer
+
+    log_memory("before loading model")
+    model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
+    gc.collect()
+    log_memory("after loading model")
+
     with torch.no_grad():
-        embedding= _model.encode(text, convert_to_numpy=False, device="cpu").tolist()
-        log_memory()
-        return embedding
+        embedding = model.encode(text, convert_to_numpy=False, device="cpu").tolist()
+
+    log_memory("after embedding")
+
+    # ✅ Cleanup
+    del model
+    gc.collect()
+    log_memory("after cleanup")
+
+    return embedding

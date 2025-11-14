@@ -2,11 +2,12 @@ from fastapi import APIRouter
 from models.query import QueryRequest
 from services.loader import get_resources
 from services.gemini import generate_answer
-from services.embedding import get_embedding  # 🔄 Updated import
+from services.embedding import get_embedding
 from pydantic import BaseModel
 from typing import List, Dict
 import logging
-import time, gc
+import time
+import gc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔍 Token-based fuzzy filter
 def filter_results(raw_results, query):
     query_lower = query.lower()
     filtered = []
@@ -66,9 +66,10 @@ async def ask_query(payload: QueryRequest):
             query_for_embedding = query_for_embedding[:MAX_CHARS]
 
         query_emb = [get_embedding(query_for_embedding)]
-        gc.collect()  # 🔄 Updated call
+        gc.collect()
+
         if not query_emb[0]:
-            logger.error("❌ Empty embedding returned from Google API")
+            logger.error("❌ Empty embedding returned")
             return {
                 "query": query,
                 "answer": "❌ Failed to generate embedding. Please try again later.",
@@ -78,20 +79,29 @@ async def ask_query(payload: QueryRequest):
         D, I = index.search(query_emb, k=20)
         raw_results = [metadata[i] for i in I[0]]
         results = filter_results(raw_results, query)
-        gc.collect()  # 🔄 Updated call
+        gc.collect()
+
         logger.info(f"📊 FAISS distances: {D[0]}")
         logger.info(f"📊 Top results: {[r['Player_Name'] for r in results]}")
 
+        context = "\n".join([r["combined_text"] for r in results])
+        answer = generate_answer(query, context)
+
     except Exception as e:
-        logger.error(f"❌ FAISS search failed: {e}")
+        logger.error(f"❌ FAISS or Gemini pipeline failed: {e}")
         return {
             "query": query,
             "answer": "❌ Internal error during semantic search. Please try again later.",
             "results": []
         }
 
-    context = "\n".join([r["combined_text"] for r in results])
-    answer = generate_answer(query, context)
+    finally:
+        # ✅ Explicit cleanup
+        try:
+            del index, metadata, raw_results, results, D, I, query_emb, context
+        except Exception:
+            pass
+        gc.collect()
 
     elapsed = time.time() - start_time
     logger.info(f"⏱️ Query processed in {elapsed:.2f} seconds")

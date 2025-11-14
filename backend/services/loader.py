@@ -1,27 +1,24 @@
 # services/loader.py
 
-import os, gc
-import json
-import faiss
-import psutil
+import os, gc, json, faiss, psutil
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 INDEX_PATH = os.path.join(DATA_DIR, "faiss.index")
 META_PATH = os.path.join(DATA_DIR, "metadata.json")
 
-_index, _metadata = None, None
+def log_mem(tag=""):
+    mem = psutil.Process().memory_info().rss / 1024**2
+    print(f"🧠 Memory {tag}: {mem:.2f} MiB")
 
-def load_resources():
-    global _metadata
-    print("🔔 Loading backend resources...")
-    print(f"🧠 Memory before metadata load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
+def load_metadata():
+    print("🔔 Loading metadata...")
+    log_mem("before metadata load")
 
-    # Load metadata
     with open(META_PATH, "r", encoding="utf-8") as f:
         raw_metadata = json.load(f)
 
-    _metadata = [
+    metadata = [
         {
             "Player_Name": entry.get("Player_Name"),
             "Year": entry.get("Year"),
@@ -31,20 +28,19 @@ def load_resources():
     ]
     del raw_metadata
     gc.collect()
-    print(f"📦 Metadata entries loaded: {len(_metadata)}")
-    print(f"🧠 Memory after metadata load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
-    print("✅ Metadata loaded")
+    print(f"📦 Metadata entries loaded: {len(metadata)}")
+    log_mem("after metadata load")
+    return metadata
 
-def get_index():
-    global _index
-    if _index is None:
-        print("🧠 Lazy-loading FAISS index...")
-        print(f"🧠 Memory before index load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
-        _index = faiss.read_index(INDEX_PATH)
-        gc.collect()
-        print(f"🧠 Memory after index load: {psutil.Process().memory_info().rss / 1024**2:.2f} MiB")
-        print("✅ FAISS index loaded")
-    return _index
+def load_index():
+    print("🧠 Loading FAISS index...")
+    log_mem("before index load")
+    index = faiss.read_index(INDEX_PATH)
+    gc.collect()
+    log_mem("after index load")
+    return index
 
 def get_resources():
-    return get_index(), _metadata
+    index = load_index()
+    metadata = load_metadata()
+    return index, metadata

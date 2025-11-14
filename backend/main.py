@@ -1,20 +1,20 @@
 # main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
+
 import sys
 print("🧨 Startup reached", file=sys.stderr)
 
-import os,gc
+import os
+import gc
 import psutil
-print(f"🔧 PORT from env: {os.environ.get('PORT')}")
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
-from services.loader import load_resources
-import threading
+
+print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
 # 🚀 FastAPI app initialization
 app = FastAPI(
@@ -41,15 +41,16 @@ app.include_router(ask_router, prefix="/ask")
 async def favicon():
     return FileResponse("static/favicon.ico")
 
-# 🔁 Startup hook (NON-BLOCKING ✅)
+# 🔁 Startup hook (lean and memory-safe)
 @app.on_event("startup")
 async def startup_event():
-    print("🔔 Startup triggered")
-    threading.Thread(target=load_resources).start()
-    gc.collect()  # 🔄 Added here
-    mem = psutil.Process().memory_info().rss / 1024**2
-    print(f"🧠 Memory usage at startup: {mem:.2f} MiB")
-    print("✅ Resources loaded")
+    mem_before = psutil.Process().memory_info().rss / 1024**2
+    print(f"🧠 Memory before startup: {mem_before:.2f} MiB")
+
+    gc.collect()
+
+    mem_after = psutil.Process().memory_info().rss / 1024**2
+    print(f"🧠 Memory after cleanup: {mem_after:.2f} MiB")
     print("✅ Startup setup complete")
 
 # 🌐 Root route
@@ -61,9 +62,3 @@ def home():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-# 🏁 Main entry point (optional for local dev)
-# if __name__ == "__main__":
-#     import uvicorn
-#     port = int(os.environ.get("PORT", 10000))
-#     uvicorn.run("main:app", host="0.0.0.0", port=port)

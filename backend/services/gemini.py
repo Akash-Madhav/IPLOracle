@@ -39,10 +39,10 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
 """
 
     response = None
+    gemini_model = None
     try:
-        logger.info(f"🧠 Gemini prompt:\n{prompt[:500]}...")  # Truncated for safety
+        logger.info(f"🧠 Gemini prompt:\n{prompt[:500]}...")
 
-        # 🔄 Lazy-load Gemini model here
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_KEY)
         gemini_model = genai.GenerativeModel("gemini-2.5-flash")
@@ -67,7 +67,8 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
 
     finally:
         # ✅ Safe cleanup
-        for var in ["response", "prompt", "context"]:
-            if var in locals():
-                del locals()[var]
+        try:
+            del response, prompt, context, gemini_model
+        except Exception:
+            pass
         gc.collect()
