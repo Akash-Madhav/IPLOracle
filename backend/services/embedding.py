@@ -3,10 +3,17 @@
 from sentence_transformers import SentenceTransformer
 import torch
 
-print("🔥 Loading MiniLM model once at startup...")
-model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
-print("✅ MiniLM model loaded.")
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        print("🔥 Loading MiniLM model (lazy)...")
+        model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
+        print("✅ MiniLM loaded")
+    return model
 
 def get_embedding(text: str):
+    m = get_model()
     with torch.no_grad():
-        return model.encode(text, convert_to_numpy=False).tolist()
+        return m.encode(text, convert_to_numpy=False).tolist()
