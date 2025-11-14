@@ -33,7 +33,7 @@ app.add_middleware(
 
 # 📬 Register routes
 app.include_router(admin_router)
-app.include_router(ask_router, prefix="/ask/")
+app.include_router(ask_router, prefix="/ask")
 
 # 🖼️ Favicon route
 @app.get("/favicon.ico")
