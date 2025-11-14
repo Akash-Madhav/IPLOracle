@@ -2,8 +2,8 @@ from fastapi import APIRouter
 from models.query import QueryRequest, AskResponse
 import logging, time
 
-from services.loader import get_resources
-from services.embedding import get_embedding
+from services.loader import get_resources, clear_resources
+from services.embedding import get_embedding, clear_model
 from services.gemini import generate_answer
 
 logger = logging.getLogger(__name__)
@@ -52,10 +52,14 @@ async def ask_query(payload: QueryRequest):
     D, I = index.search(query_emb, k=20)
     raw_results = [metadata[i] for i in I[0]]
     results = filter_results(raw_results, query)
-
+    clear_model()
     context = "\n".join([r["combined_text"] for r in results])
     answer = generate_answer(query, context)
-
     logger.info(f"⏱ Query processed in {time.time() - start_time:.2f}s")
+    clear_resources()
 
     return {"query": query, "answer": answer, "results": results}
+@ask_router.on_event("shutdown")
+def shutdown_event():
+    clear_resources()
+    clear_model()

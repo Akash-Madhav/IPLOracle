@@ -7,7 +7,6 @@ print("🧨 Startup reached", file=sys.stderr)
 
 import os
 import gc
-import psutil
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -26,7 +25,7 @@ app = FastAPI(
 # 🔓 CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,7 +33,7 @@ app.add_middleware(
 
 # 📬 Register routes
 app.include_router(admin_router)
-app.include_router(ask_router, prefix="/ask")
+app.include_router(ask_router, prefix="/ask/")
 
 # 🖼️ Favicon route
 @app.get("/favicon.ico")
@@ -44,6 +43,7 @@ async def favicon():
 # 🔁 Startup hook (lean and memory-safe)
 @app.on_event("startup")
 async def startup_event():
+    import psutil
     mem_before = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory before startup: {mem_before:.2f} MiB")
 

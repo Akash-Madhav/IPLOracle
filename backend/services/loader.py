@@ -41,3 +41,15 @@ def get_resources():
         print(f"📦 Metadata entries: {len(metadata)}")
 
     return index, metadata
+def clear_resources():
+    global index, metadata, faiss
+    if index is not None:
+        del index
+        index = None
+    if metadata is not None:
+        del metadata
+        metadata = None
+    if faiss is not None:
+        del faiss
+        faiss = None
+    print("🗑️ FAISS resources cleared from memory")
