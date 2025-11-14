@@ -1,47 +1,49 @@
+# build_index.py
+
 import faiss
 import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import os,gc
+import os, gc
 
-# Resolve absolute path to metadata
-base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
+# Paths
+base_dir = os.path.dirname(os.path.dirname(__file__))
 metadata_path = os.path.join(base_dir, "data", "metadata.json")
+index_path = os.path.join(base_dir, "data", "faiss.index")
 
 # Load metadata
-with open(metadata_path, "r") as f:
+with open(metadata_path, "r", encoding="utf-8") as f:
     metadata = json.load(f)
 
-# Load embedding model
-model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L6-v2")
+# Load embedding model (CORRECT NAME)
+print("🔥 Loading embedding model...")
+model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
 
 # Create embeddings
+print("🧠 Generating embeddings...")
 texts = [entry["combined_text"] for entry in metadata]
-del metadata  # Free raw JSON
-gc.collect()
 embeddings = model.encode(texts, convert_to_tensor=False)
-del texts  # Free raw text
-gc.collect()
 
-# Convert to FAISS-compatible float32 array using NumPy
-embedding_array = np.array(embeddings, dtype="float32")
-embedding_count, d = embedding_array.shape
+# Convert to NumPy float32
+embeddings = np.array(embeddings, dtype="float32")
+num_vectors, dim = embeddings.shape
 
-# Build compressed FAISS index
-nlist = 100
-m = 8
-nbits = 8
+print(f"📏 Embedding matrix: {num_vectors} vectors × {dim} dims")
 
-quantizer = faiss.IndexFlatL2(d)
-index = faiss.IndexIVFPQ(quantizer, d, nlist, m, nbits)
+# Build FAST & ACCURATE FAISS index
+print("🔧 Building FAISS IndexFlatL2...")
+index = faiss.IndexFlatL2(dim)
+index.add(embeddings)
 
-print("🔧 Training compressed index...")
-index.train(embedding_array)
-index.add(embedding_array)
-del embedding_array  # Free NumPy array
-gc.collect()
-print(f"✅ Compressed FAISS index built with {index.ntotal} vectors of dimension {d}")
-# Save index to original path
-index_path = os.path.join(base_dir, "data", "faiss.index")
+print(f"✅ FAISS index built with {index.ntotal} vectors")
+
+# Save index
 faiss.write_index(index, index_path)
-print(f"✅ Compressed index saved to {index_path}")
+print(f"💾 Index saved → {index_path}")
+
+# Cleanup
+del embeddings
+del model
+gc.collect()
+
+print("🎉 Index rebuild complete!")

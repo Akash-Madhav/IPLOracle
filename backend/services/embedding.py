@@ -1,7 +1,6 @@
 # services/embedding.py
 
 from sentence_transformers import SentenceTransformer
-import torch
 
 model = None
 
@@ -15,5 +14,4 @@ def get_model():
 
 def get_embedding(text: str):
     m = get_model()
-    with torch.no_grad():
-        return m.encode(text, convert_to_numpy=False).tolist()
+    return m.encode(text).tolist()
