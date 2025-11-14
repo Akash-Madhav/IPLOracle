@@ -1,6 +1,6 @@
 # services/loader.py
 
-import os, json, faiss
+import os, json
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "..", "data")
@@ -9,14 +9,22 @@ META_PATH = os.path.join(DATA_DIR, "metadata.json")
 
 index = None
 metadata = None
+faiss = None   # <--- IMPORTANT: start as None
 
 def get_resources():
-    global index, metadata
+    global index, metadata, faiss
+
+    # Load FAISS ONLY when this function is called
+    if faiss is None:
+        print("🔥 Importing FAISS lazily...")
+        import faiss as _fa
+        faiss = _fa
+        print("✅ FAISS module loaded")
 
     if index is None:
         print("🔥 Loading FAISS index (lazy)...")
         index = faiss.read_index(INDEX_PATH)
-        print("✅ FAISS loaded")
+        print("✅ FAISS index loaded")
 
     if metadata is None:
         print("🔔 Loading metadata (lazy)...")
