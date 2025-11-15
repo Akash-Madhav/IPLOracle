@@ -36,12 +36,16 @@ app.include_router(admin_router)
 app.include_router(ask_router, prefix="/ask")
 
 @app.get("/warmup")
-def warmup():
-    from services.loader import get_resources
-    from services.embedding import get_embedding
-    get_resources()
-    get_embedding("warmup")
-    return {"status": "warmed"}
+async def warmup():
+    try:
+        from services.loader import get_resources
+        from services.embedding import get_embedding
+        get_resources()
+        get_embedding("warmup")
+        return {"status": "✅ Warmup complete"}
+    except Exception as e:
+        print(f"⚠️ Warmup error: {e}")
+        return {"status": "❌ Warmup failed", "error": str(e)}
 
 # 🖼️ Favicon route
 @app.get("/favicon.ico")
