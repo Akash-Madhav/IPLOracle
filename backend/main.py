@@ -58,7 +58,8 @@ async def startup_event():
     import psutil
     mem_before = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory before startup: {mem_before:.2f} MiB")
-
+    from services.embedding import get_embedding
+    get_embedding("warmup")  # triggers model load
     gc.collect()
 
     mem_after = psutil.Process().memory_info().rss / 1024**2

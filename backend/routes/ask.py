@@ -4,7 +4,7 @@ import logging, time, psutil, asyncio
 import numpy as np
 
 from services.loader import get_resources, clear_resources
-from services.embedding import get_embedding, clear_model
+from services.embedding import get_embedding  # ⛔️ Removed clear_model
 from services.gemini import generate_answer
 
 logger = logging.getLogger(__name__)
@@ -82,19 +82,15 @@ async def ask_query(payload: QueryRequest):
         results = filter_results(raw_results, query)
         print(f"⏱ Filtering: {time.time() - t2:.2f}s")
 
-        clear_model()
-
         # Step 4: Gemini answer
-        context = "\n".join([r["combined_text"] for r in results[:3]])
+        context = "\n".join([r["combined_text"][:500] for r in results[:3]])
         t3 = time.time()
         try:
             answer = generate_answer(query, context)
         except Exception as e:
-            answer = "⚠️ Answer generation timed out. Please try again."
+            answer = "⚠️ Answer generation failed. Please try again."
             logger.error(f"Gemini error: {e}")
         print(f"⏱ Gemini: {time.time() - t3:.2f}s")
-
-        clear_resources()
 
         # Step 5: Memory logging
         mem_used = psutil.Process().memory_info().rss / 1024**2
@@ -114,4 +110,5 @@ async def ask_query(payload: QueryRequest):
 @ask_router.on_event("shutdown")
 def shutdown_event():
     clear_resources()
+    from services.embedding import clear_model
     clear_model()
