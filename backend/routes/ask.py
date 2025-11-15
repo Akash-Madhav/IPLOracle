@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from models.query import QueryRequest, AskResponse
 import logging, time, psutil
+import numpy as np  # ✅ Added for FAISS compatibility
 
 from services.loader import get_resources, clear_resources
 from services.embedding import get_embedding, clear_model
@@ -45,20 +46,24 @@ async def ask_query(payload: QueryRequest):
 
     logger.info(f"🟢 Query received: {query}")
 
-    # Lazy load FAISS + metadata here
+    # Lazy load FAISS + metadata
     if index is None or metadata is None:
         print("🔥 Loading FAISS + metadata...")
         index, metadata = get_resources()
 
+    # Step 1: Embedding
     t0 = time.time()
     emb_text = f"Player stats for {query}"
-    query_emb = [get_embedding(emb_text)]
+    query_emb = get_embedding(emb_text)
+    query_emb = np.array([query_emb], dtype='float32')  # ✅ NumPy 2D array
     print(f"⏱ Embedding: {time.time() - t0:.2f}s")
 
+    # Step 2: FAISS search
     t1 = time.time()
     D, I = index.search(query_emb, k=20)
     print(f"⏱ FAISS search: {time.time() - t1:.2f}s")
 
+    # Step 3: Filtering
     t2 = time.time()
     raw_results = [metadata[i] for i in I[0]]
     results = filter_results(raw_results, query)
@@ -66,9 +71,8 @@ async def ask_query(payload: QueryRequest):
 
     clear_model()
 
-    # Trim context to top 3 results
-    context = "\n".join([r["combined_text"] for r in results[:3]])
-
+    # Step 4: Gemini answer
+    context = "\n".join([r["combined_text"] for r in results[:3]])  # Trim to top 3
     t3 = time.time()
     try:
         answer = generate_answer(query, context)
@@ -79,10 +83,9 @@ async def ask_query(payload: QueryRequest):
 
     clear_resources()
 
-    # Log memory after query
+    # Step 5: Memory logging
     mem_used = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory after query: {mem_used:.2f} MiB")
-
     print(f"⏱ Total query time: {time.time() - start_time:.2f}s")
 
     return {"query": query, "answer": answer, "results": results}
