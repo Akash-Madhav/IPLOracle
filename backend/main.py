@@ -1,4 +1,3 @@
-# main.py
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
 
@@ -15,14 +14,12 @@ from routes.admin import admin_router
 
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
-# 🚀 FastAPI app initialization
 app = FastAPI(
     title="🏏 IPL Insight Bot",
     description="Semantic IPL stats search powered by FAISS + MiniLM embeddings + Gemini answers",
     version="1.0"
 )
 
-# 🔓 CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -33,7 +30,7 @@ app.add_middleware(
 
 # 📬 Register routes
 app.include_router(admin_router)
-app.include_router(ask_router, prefix="/ask")
+app.include_router(ask_router)  # ✅ No prefix → /ask is correct
 
 @app.get("/warmup")
 async def warmup():
@@ -47,31 +44,24 @@ async def warmup():
         print(f"⚠️ Warmup error: {e}")
         return {"status": "❌ Warmup failed", "error": str(e)}
 
-# 🖼️ Favicon route
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("static/favicon.ico")
 
-# 🔁 Startup hook (lean and memory-safe)
 @app.on_event("startup")
 async def startup_event():
     import psutil
     mem_before = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory before startup: {mem_before:.2f} MiB")
-   # from services.embedding import get_embedding
-    #get_embedding("warmup")  # triggers model load
     gc.collect()
-
     mem_after = psutil.Process().memory_info().rss / 1024**2
     print(f"🧠 Memory after cleanup: {mem_after:.2f} MiB")
     print("✅ Startup setup complete")
 
-# 🌐 Root route
 @app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {"status": "ok", "message": "🏏 IPL Insight Bot backend is running!"}
 
-# ❤️ Health check
 @app.get("/health")
 def health():
     return {"status": "ok"}

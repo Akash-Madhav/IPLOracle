@@ -1,15 +1,11 @@
-# routes/admin.py
-
 from fastapi import APIRouter
 import subprocess
-import logging,gc
-
-
+import logging, gc
 
 logger = logging.getLogger(__name__)
 admin_router = APIRouter()
 
-@admin_router.post("/rebuild-index")
+@admin_router.post("/admin/rebuild-index")
 def rebuild_index():
     try:
         logger.info("🔄 Rebuilding FAISS index...")
@@ -19,4 +15,4 @@ def rebuild_index():
         return {"status": "success", "message": "FAISS index rebuilt"}
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Index rebuild failed: {e}")
-        return {"status": "error", "message": "Index rebuild failed"}
+        return {"status": "error", "message": str(e)}
