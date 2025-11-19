@@ -20,7 +20,7 @@ INDEX_NAME = "ipl-players"
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(INDEX_NAME)
 
-@ask_router.get("/")
+@ask_router.get("/ask")
 async def ask_info():
     return {"message": "POST { 'query': 'Who scored...' }"}
 
