@@ -8,12 +8,16 @@ import os
 import gc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
 from services.embedding import get_embedding
 
+# 🔧 Log environment variables for debugging
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
+print(f"🔐 GEMINI_API_KEY: {os.environ.get('GEMINI_API_KEY')}")
+print(f"🔐 PINECONE_API_KEY: {os.environ.get('PINECONE_API_KEY')}")
+print(f"📦 INDEX_NAME: {os.environ.get('INDEX_NAME')}")
 
 app = FastAPI(
     title="🏏 IPL Insight Bot",
@@ -37,12 +41,13 @@ app.include_router(ask_router)
 # 🔥 Warmup endpoint
 @app.get("/warmup")
 async def warmup():
+    print("🔍 /warmup route hit")
     try:
         get_embedding("warmup")
         return {"status": "✅ Warmup complete"}
     except Exception as e:
         print(f"⚠️ Warmup error: {e}")
-        return {"status": "❌ Warmup failed", "error": str(e)}
+        return JSONResponse(status_code=500, content={"status": "❌ Warmup failed", "error": str(e)})
 
 # 🖼️ Favicon
 @app.get("/favicon.ico")
