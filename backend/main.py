@@ -11,15 +11,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
+from services.embedding import get_embedding
 
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 
 app = FastAPI(
     title="🏏 IPL Insight Bot",
-    description="Semantic IPL stats search powered by FAISS + MiniLM embeddings + Gemini answers",
+    description="Semantic IPL stats search powered by Pinecone + MiniLM embeddings + Gemini answers",
     version="1.0"
 )
 
+# 🌐 CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -30,24 +32,24 @@ app.add_middleware(
 
 # 📬 Register routes
 app.include_router(admin_router)
-app.include_router(ask_router)  # ✅ No prefix → /ask is correct
+app.include_router(ask_router)
 
+# 🔥 Warmup endpoint
 @app.get("/warmup")
 async def warmup():
     try:
-        from services.loader import get_resources
-        from services.embedding import get_embedding
-        get_resources()
         get_embedding("warmup")
         return {"status": "✅ Warmup complete"}
     except Exception as e:
         print(f"⚠️ Warmup error: {e}")
         return {"status": "❌ Warmup failed", "error": str(e)}
 
+# 🖼️ Favicon
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("static/favicon.ico")
 
+# 🚀 Startup memory check
 @app.on_event("startup")
 async def startup_event():
     import psutil
@@ -58,10 +60,12 @@ async def startup_event():
     print(f"🧠 Memory after cleanup: {mem_after:.2f} MiB")
     print("✅ Startup setup complete")
 
+# 🏠 Home route
 @app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {"status": "ok", "message": "🏏 IPL Insight Bot backend is running!"}
 
+# ❤️ Health check
 @app.get("/health")
 def health():
     return {"status": "ok"}

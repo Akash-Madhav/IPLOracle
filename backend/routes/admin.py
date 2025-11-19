@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 import subprocess
-import logging, gc
+import logging
+import gc
 
 logger = logging.getLogger(__name__)
 admin_router = APIRouter()
@@ -8,11 +9,19 @@ admin_router = APIRouter()
 @admin_router.post("/admin/rebuild-index")
 def rebuild_index():
     try:
-        logger.info("🔄 Rebuilding FAISS index...")
+        logger.info("🔄 Rebuilding Pinecone index...")
         subprocess.run(["python", "build_index.py"], check=True)
         gc.collect()
-        logger.info("✅ Index rebuilt successfully")
-        return {"status": "success", "message": "FAISS index rebuilt"}
+        logger.info("✅ Pinecone index rebuilt successfully")
+        return {"status": "success", "message": "Pinecone index rebuilt"}
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Index rebuild failed: {e}")
         return {"status": "error", "message": str(e)}
+@admin_router.get("/admin/memory")
+def memory_usage():
+    import psutil
+    mem = psutil.Process().memory_info().rss / 1024**2
+    return {
+        "status": "ok",
+        "memory_usage_mb": round(mem, 2)
+    }

@@ -5,7 +5,7 @@ import gc
 def get_model():
     from sentence_transformers import SentenceTransformer
     print("🔥 Loading MiniLM model (lazy)...")
-    model = SentenceTransformer("paraphrase-MiniLm-L3-v2", device="cpu")
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
     print("✅ MiniLM loaded")
     return model
 

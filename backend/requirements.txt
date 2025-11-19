@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 google-generativeai
 psutil
-faiss-cpu
 numpy
 sentence-transformers
+pinecone
+python-dotenv
