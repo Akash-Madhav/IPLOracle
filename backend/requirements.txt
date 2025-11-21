@@ -3,6 +3,5 @@ uvicorn[standard]
 google-generativeai
 psutil
 numpy
-sentence-transformers
 pinecone
 python-dotenv

@@ -11,24 +11,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from routes.ask import ask_router
 from routes.admin import admin_router
-from services.embedding import get_embedding
 
 # 🔧 Log environment variables for debugging
 print(f"🔧 PORT from env: {os.environ.get('PORT')}")
 print(f"🔐 GEMINI_API_KEY: {os.environ.get('GEMINI_API_KEY')}")
 print(f"🔐 PINECONE_API_KEY: {os.environ.get('PINECONE_API_KEY')}")
-print(f"📦 INDEX_NAME: {os.environ.get('INDEX_NAME')}")
+#print(f"📦 INDEX_NAME: {os.environ.get('INDEX_NAME')}")
 
 app = FastAPI(
     title="🏏 IPL Insight Bot",
-    description="Semantic IPL stats search powered by Pinecone + MiniLM embeddings + Gemini answers",
+    description="Semantic IPL stats search powered by Pinecone + Gemini answers",
     version="1.0"
 )
 
 # 🌐 CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,12 +37,11 @@ app.add_middleware(
 app.include_router(admin_router)
 app.include_router(ask_router)
 
-# 🔥 Warmup endpoint
+# 🔥 Warmup endpoint (no embedding now, just a simple check)
 @app.get("/warmup")
 async def warmup():
     print("🔍 /warmup route hit")
     try:
-        get_embedding("warmup")
         return {"status": "✅ Warmup complete"}
     except Exception as e:
         print(f"⚠️ Warmup error: {e}")

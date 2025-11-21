@@ -1,8 +1,9 @@
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class QueryRequest(BaseModel):
-    query: str
+    query: Optional[str] = None   
+    vector: List[float]           
 
 class AskResponse(BaseModel):
     query: str
