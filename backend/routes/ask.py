@@ -39,7 +39,7 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
     try:
         # 🔎 Query Pinecone with a larger top_k for recall
         t1 = time.time()
-        response = index.query(vector=payload.vector, top_k=1000, include_metadata=True)
+        response = index.query(vector=payload.vector, top_k=1172, include_metadata=True)
         print(f"⏱ Pinecone search: {time.time() - t1:.2f}s")
 
         # 🧹 Collect metadata
