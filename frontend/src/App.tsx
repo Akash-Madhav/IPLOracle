@@ -11,6 +11,7 @@ import { TypingIndicator } from "./components/TypingIndicator";
 import { IPLDisclaimer } from "./components/IPLDisclaimer";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { AnimatedBackground } from "./components/AnimatedBackground";
+import { generateEmbedding } from "./lib/embeddings";
 
 interface Message {
   id: string;
@@ -69,6 +70,12 @@ function ChatApp() {
     setIsTyping(true);
 
     try {
+      console.log("🟡 Generating embedding for query:", text);
+      
+      // Generate embedding for the query
+      const vector = await generateEmbedding(text);
+      console.log("✅ Embedding generated, length:", vector.length);
+
       console.log("🟡 Sending query to backend:", text);
 
       const response = await fetch(
@@ -76,7 +83,7 @@ function ChatApp() {
   {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: text }),
+    body: JSON.stringify({ query: text, vector }),
   }
 );
 
@@ -127,9 +134,19 @@ function ChatApp() {
       setMessages((prev) => [...prev, botMsg]);
     } catch (error) {
       console.error("❌ Error fetching backend:", error);
+      let errorText = "⚠️ Sorry, something went wrong. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('embedding')) {
+          errorText = "⚠️ Failed to process your query. Please try again.";
+        } else if (error.message.includes('fetch')) {
+          errorText = "⚠️ Cannot connect to server. Please check your internet connection.";
+        }
+      }
+      
       const errMsg: Message = {
         id: `error-${Date.now()}`,
-        text: "⚠️ Sorry, something went wrong. Please try again.",
+        text: errorText,
         isUser: false,
         timestamp: new Date(),
       };

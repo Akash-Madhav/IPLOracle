@@ -4,6 +4,10 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
+
+# ⚠️ This script must be run from the backend directory
+# Usage: python services/pinecone_build_index.py
+
 load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_REGION = os.getenv("PINECONE_REGION")
@@ -30,7 +34,7 @@ if INDEX_NAME not in pc.list_indexes().names():
 index = pc.Index(INDEX_NAME)
 
 # 📄 Load CSV
-df = pd.read_csv("../data/ipl_players.csv")
+df = pd.read_csv("data/ipl_players.csv")
 
 # 🚀 Upload in batches
 batch = []
