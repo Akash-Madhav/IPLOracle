@@ -4,7 +4,7 @@ import logging, time, psutil, asyncio
 from pinecone import Pinecone
 from config import Config
 
-from services.gemini import generate_answer
+from services.gemini import generate_answer, classify_fields  # ⬅️ import classifier
 
 logger = logging.getLogger(__name__)
 ask_router = APIRouter()
@@ -37,23 +37,48 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
     heartbeat_task = asyncio.create_task(heartbeat())
 
     try:
-        # 🔎 Query Pinecone directly with frontend-provided vector
+        # 🔎 Query Pinecone with a larger top_k for recall
         t1 = time.time()
-        response = index.query(vector=payload.vector, top_k=20, include_metadata=True)
+        response = index.query(vector=payload.vector, top_k=1000, include_metadata=True)
         print(f"⏱ Pinecone search: {time.time() - t1:.2f}s")
 
-        # 🧹 Filter results
+        # 🧹 Collect metadata
         raw_results = [match.metadata for match in response["matches"]]
         results = [r for r in raw_results if r]
         print("✅ Results filtered")
 
-        # 🧠 Build context for Gemini (optional)
-        context = "\n".join([
-            " | ".join([f"{k}: {v}" for k, v in r.items() if v])[:500]
-            for r in results[:3]
-        ])
+        # 🧠 Step 1: Classify query to get relevant fields
+        relevant_fields = classify_fields(query)
+        logger.info(f"🎯 Relevant fields: {relevant_fields}")
 
-        # ✨ Generate answer
+        # 🧠 Step 2: Optional filter by Year if present in query
+        if "2023" in query:
+            results = [r for r in results if r.get("Year") == "2023"]
+
+        # 🧠 Step 3: Sort results by the primary relevant field if numeric
+        sort_field = None
+        for f in relevant_fields:
+            if f not in ["Player_Name", "Year"]:
+                sort_field = f
+                break
+        if sort_field:
+            try:
+                results = sorted(results, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
+            except Exception:
+                pass
+
+        # 🧠 Step 4: Build context dynamically
+        context_lines = []
+        for r in results[:10]:  # top 10 after sorting
+            line_parts = []
+            for field in relevant_fields:
+                if r.get(field):
+                    line_parts.append(f"{field}: {r.get(field)}")
+            if line_parts:
+                context_lines.append(" | ".join(line_parts))
+        context = "\n".join(context_lines)
+
+        # ✨ Generate Gemini answer
         t3 = time.time()
         try:
             answer = generate_answer(query, context) if query else "Vector-only query"
