@@ -2,22 +2,16 @@ from fastapi import APIRouter
 from models.query import QueryRequest, AskResponse
 import logging, time, psutil, asyncio
 from pinecone import Pinecone
-import os
-from dotenv import load_dotenv
+from config import Config
 
 from services.gemini import generate_answer
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 ask_router = APIRouter()
 
-# 🔐 Load Pinecone credentials
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-INDEX_NAME = "ipl-players"
-
 # 🔗 Connect to Pinecone
-pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index(INDEX_NAME)
+pc = Pinecone(api_key=Config.PINECONE_API_KEY)
+index = pc.Index(Config.INDEX_NAME)
 
 @ask_router.get("/ask")
 async def ask_info():

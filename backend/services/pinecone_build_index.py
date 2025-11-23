@@ -1,15 +1,31 @@
 import os
+import sys
 import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
+
+# ⚠️ This script must be run from the backend directory
+# Usage: python services/pinecone_build_index.py
+
+# Change to backend directory if running from services/
+if os.path.basename(os.getcwd()) == "services":
+    os.chdir("..")
+
 load_dotenv()
+
+# Load configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_REGION = os.getenv("PINECONE_REGION")
-PINECONE_CLOUD = os.getenv("PINECONE_CLOUD")
-INDEX_NAME = "ipl-players"                     # Your index name
-DIMENSION = 384                                # Depends on your embedding model
+PINECONE_REGION = os.getenv("PINECONE_REGION", "us-east-1")
+PINECONE_CLOUD = os.getenv("PINECONE_CLOUD", "aws")
+
+if not PINECONE_API_KEY:
+    print("❌ Error: PINECONE_API_KEY not found in environment variables")
+    sys.exit(1)
+
+INDEX_NAME = "ipl-players"
+DIMENSION = 384  # all-MiniLM-L6-v2 embedding dimension
 
 # 🧠 Load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -30,7 +46,7 @@ if INDEX_NAME not in pc.list_indexes().names():
 index = pc.Index(INDEX_NAME)
 
 # 📄 Load CSV
-df = pd.read_csv("../data/ipl_players.csv")
+df = pd.read_csv("data/ipl_players.csv")
 
 # 🚀 Upload in batches
 batch = []
@@ -63,4 +79,4 @@ for i, row in df.iterrows():
 if batch:
     index.upsert(batch)
 
-print("✅ Upload complete.")
+print(f"✅ Upload complete. Total records: {len(df)}")

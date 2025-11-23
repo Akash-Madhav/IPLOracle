@@ -10,11 +10,11 @@ admin_router = APIRouter()
 @admin_router.post("/admin/rebuild-index")
 def rebuild_index():
     """
-    Trigger a rebuild of the Pinecone index by running build_index.py.
+    Trigger a rebuild of the Pinecone index by running pinecone_build_index.py.
     """
     try:
         logger.info("🔄 Rebuilding Pinecone index...")
-        subprocess.run(["python", "build_index.py"], check=True)
+        subprocess.run(["python", "services/pinecone_build_index.py"], check=True)
         gc.collect()
         logger.info("✅ Pinecone index rebuilt successfully")
         return {"status": "success", "message": "Pinecone index rebuilt"}
