@@ -1,42 +1,34 @@
 import { motion } from 'motion/react';
-import { Trophy } from 'lucide-react';
 
 export function TypingIndicator() {
   return (
-    <motion.div
-      className="flex items-start gap-3 max-w-xs mb-4"
-      initial={{ opacity: 0, x: -20, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex-shrink-0">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 rounded-full blur-md opacity-40"></div>
-          <div className="relative bg-gradient-to-br from-orange-500 via-purple-600 to-blue-600 p-2 rounded-full">
-            <Trophy className="w-4 h-4 text-white" />
-          </div>
-        </div>
+    <div className="flex items-start gap-3 max-w-4xl">
+      {/* Bot Avatar */}
+      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/20 via-purple-500/20 to-blue-500/20 border border-orange-500/30 flex items-center justify-center">
+        <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-purple-400"></div>
       </div>
 
-      <div className="backdrop-blur-xl bg-slate-800/60 border border-slate-700/30 rounded-2xl px-4 py-3">
-        <div className="flex gap-1">
-          {[0, 1, 2].map((index) => (
+      {/* Typing Animation */}
+      <div className="flex-1 rounded-2xl bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl border border-white/10 px-6 py-4">
+        <div className="flex items-center gap-2">
+          {[0, 1, 2].map((i) => (
             <motion.div
-              key={index}
-              className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-500 to-purple-500"
+              key={i}
+              className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-purple-400"
               animate={{
-                y: [0, -8, 0]
+                scale: [1, 1.3, 1],
+                opacity: [0.5, 1, 0.5],
               }}
               transition={{
-                duration: 0.6,
+                duration: 1,
                 repeat: Infinity,
-                delay: index * 0.2,
-                ease: "easeInOut"
+                delay: i * 0.2,
               }}
             />
           ))}
+          <span className="ml-2 text-sm text-slate-400">IPL Oracle is thinking...</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

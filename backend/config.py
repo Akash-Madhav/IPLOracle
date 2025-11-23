@@ -58,11 +58,11 @@ class Config:
         
         # Log configuration (without sensitive values)
         print("✅ Configuration loaded:")
-        print(f"   Environment: {cls.ENV}")
+        '''print(f"   Environment: {cls.ENV}")
         print(f"   Port: {cls.PORT}")
         print(f"   Pinecone Region: {cls.PINECONE_REGION}")
         print(f"   Pinecone Cloud: {cls.PINECONE_CLOUD}")
-        print(f"   Index Name: {cls.INDEX_NAME}")
+        print(f"   Index Name: {cls.INDEX_NAME}")'''
         print(f"   Gemini API: {'✓' if cls.GEMINI_API_KEY else '✗'}")
 
 

@@ -1,7 +1,7 @@
 
-  # Complete IPL Oracle Chatbot
+  # Futuristic IPL Oracle Landing Page
 
-  This is a code bundle for Complete IPL Oracle Chatbot. The original project is available at https://www.figma.com/design/4SYbExNRTLswzX6xYOgf4P/Complete-IPL-Oracle-Chatbot.
+  This is a code bundle for Futuristic IPL Oracle Landing Page. The original project is available at https://www.figma.com/design/zSx2pm6yFAus0g8XV44JHs/Futuristic-IPL-Oracle-Landing-Page.
 
   ## Running the code
 

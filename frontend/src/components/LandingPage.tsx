@@ -1,201 +1,245 @@
 import { motion } from 'motion/react';
-import { Trophy, BarChart3, TrendingUp, Users, UserPlus, MessageSquare, Zap } from 'lucide-react';
+import { Trophy, TrendingUp, Users, BarChart3, Shield, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import { AnimatedBackground } from './AnimatedBackground';
-import { Button } from './ui/button';
 
 interface LandingPageProps {
-  onNavigateToLogin: () => void;
-  onNavigateToRegister: () => void;
+  onGetStarted: () => void;
 }
 
-export function LandingPage({ onNavigateToLogin, onNavigateToRegister }: LandingPageProps) {
+export function LandingPage({ onGetStarted }: LandingPageProps) {
   const features = [
     {
-      icon: BarChart3,
+      icon: Trophy,
       title: 'Match Analytics',
-      description: 'Real-time match stats and comprehensive analysis',
-      gradient: 'from-orange-500 to-amber-500'
+      description: 'Real-time match insights, live scores, and comprehensive match analysis',
+      gradient: 'from-orange-500 to-orange-600',
+      glowColor: 'orange',
     },
     {
       icon: TrendingUp,
-      title: 'Match Predictions',
-      description: 'AI-powered match outcome predictions',
-      gradient: 'from-purple-500 to-pink-500'
+      title: 'Predictions & Stats',
+      description: 'AI-powered predictions, historical statistics, and trending analytics',
+      gradient: 'from-blue-500 to-blue-600',
+      glowColor: 'blue',
     },
     {
       icon: Users,
       title: 'Player Intelligence',
-      description: 'Detailed player stats and insights',
-      gradient: 'from-blue-500 to-cyan-500'
+      description: 'Detailed player profiles, performance metrics, and career statistics',
+      gradient: 'from-purple-500 to-purple-600',
+      glowColor: 'purple',
     },
     {
-      icon: Trophy,
+      icon: BarChart3,
       title: 'Team Comparisons',
-      description: 'Head-to-head team analysis',
-      gradient: 'from-teal-500 to-emerald-500'
-    }
+      description: 'In-depth team analysis, head-to-head records, and strategic insights',
+      gradient: 'from-teal-500 to-teal-600',
+      glowColor: 'teal',
+    },
   ];
 
-  const steps = [
-    { icon: UserPlus, title: 'Create Account', description: 'Sign up in seconds' },
-    { icon: MessageSquare, title: 'Ask Questions', description: 'Chat with AI assistant' },
-    { icon: Zap, title: 'Get Insights', description: 'Receive instant answers' }
+  const badges = [
+    {
+      icon: Shield,
+      text: 'Secure authentication powered by Firebase',
+    },
+    {
+      icon: Sparkles,
+      text: 'AI-powered insights & real-time data',
+    },
+    {
+      icon: Zap,
+      text: 'Lightning-fast responses',
+    },
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen w-full text-white relative overflow-hidden">
       <AnimatedBackground />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12 md:py-20">
+      <div className="relative z-10 container mx-auto px-4 py-12 md:py-20">
         {/* Hero Section */}
-        <motion.div
-          className="text-center mb-20"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div className="flex flex-col items-center text-center mb-20 md:mb-32">
+          {/* Animated Trophy Icon */}
           <motion.div
-            className="inline-block mb-8"
-            initial={{ opacity: 0, y: 20, rotate: -10 }}
-            animate={{ opacity: 1, y: 0, rotate: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 20,
+              duration: 0.8,
+            }}
+            className="relative mb-8"
           >
-            <div className="relative">
+            <motion.div
+              className="relative p-8 rounded-3xl bg-gradient-to-br from-orange-500 via-purple-600 to-blue-600"
+              animate={{
+                boxShadow: [
+                  '0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(147, 51, 234, 0.3)',
+                  '0 0 40px rgba(249, 115, 22, 0.7), 0 0 60px rgba(147, 51, 234, 0.5)',
+                  '0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(147, 51, 234, 0.3)',
+                ],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <Trophy className="w-16 h-16 md:w-20 md:h-20" />
+            </motion.div>
+          </motion.div>
+
+          {/* Hero Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="space-y-6 max-w-4xl"
+          >
+            <h1 className="bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 bg-clip-text text-transparent text-5xl md:text-7xl">
+              IPL Oracle
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-slate-300">
+              Your AI-Powered Cricket Intelligence
+            </p>
+            
+            <p className="text-slate-400 max-w-2xl mx-auto text-base md:text-lg px-4">
+              Experience the future of cricket analytics with IPL Oracle. Get instant access to match predictions, 
+              player statistics, team comparisons, and real-time insights powered by advanced AI technology. 
+              Your ultimate companion for the Indian Premier League.
+            </p>
+
+            {/* CTA Button */}
+            <motion.button
+              onClick={onGetStarted}
+              className="group relative mt-8 px-8 py-4 bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 rounded-full overflow-hidden"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+            >
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 rounded-full blur-2xl opacity-50"
+                className="absolute inset-0 bg-gradient-to-r from-orange-600 via-purple-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity"
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 0.7, 0.5]
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              />
+              <span className="relative flex items-center gap-2 text-lg">
+                Get Started
+                <motion.div
+                  className="inline-block"
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </motion.div>
+              </span>
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                animate={{
+                  boxShadow: [
+                    '0 0 20px rgba(249, 115, 22, 0.5)',
+                    '0 0 40px rgba(147, 51, 234, 0.7)',
+                    '0 0 20px rgba(249, 115, 22, 0.5)',
+                  ],
                 }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
               />
-              <div className="relative bg-gradient-to-br from-orange-500 via-purple-600 to-blue-600 p-6 rounded-full">
-                <Trophy className="w-20 h-20 text-white" />
-              </div>
-            </div>
+            </motion.button>
           </motion.div>
-
-          <motion.h1
-            className="text-5xl md:text-7xl mb-6 bg-gradient-to-r from-orange-400 via-purple-400 to-blue-400 bg-clip-text text-transparent"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            IPL Oracle
-          </motion.h1>
-
-          <motion.p
-            className="text-xl md:text-2xl text-slate-300 mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            Your AI-Powered Cricket Intelligence Assistant
-          </motion.p>
-
-          <motion.p
-            className="text-slate-400 max-w-2xl mx-auto mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            Get instant insights on IPL matches, players, teams, and predictions. 
-            Your personal cricket expert powered by cutting-edge AI technology.
-          </motion.p>
-
-          <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <Button
-              onClick={onNavigateToRegister}
-              className="bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 hover:shadow-[0_0_30px_rgba(249,115,22,0.4),0_0_60px_rgba(147,51,234,0.3)] transition-all duration-300 px-8 py-6 text-lg"
-            >
-              Get Started
-            </Button>
-            <Button
-              onClick={onNavigateToLogin}
-              variant="outline"
-              className="border-slate-700/50 hover:border-orange-500/50 bg-slate-800/30 backdrop-blur-xl px-8 py-6 text-lg transition-all duration-300"
-            >
-              Sign In
-            </Button>
-          </motion.div>
-        </motion.div>
+        </div>
 
         {/* Features Grid */}
-        <motion.div
-          className="mb-20"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-        >
-          <h2 className="text-3xl md:text-4xl text-center mb-12 bg-gradient-to-r from-orange-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-            Powerful Features
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.map((feature, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
               <motion.div
                 key={feature.title}
-                className="backdrop-blur-xl bg-slate-800/60 border border-slate-700/30 rounded-3xl p-8 hover:scale-105 hover:shadow-[0_0_30px_rgba(249,115,22,0.2)] transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
+                transition={{
+                  delay: 0.7 + index * 0.1,
+                  duration: 0.8,
+                  ease: "easeOut",
+                }}
+                whileHover={{ 
+                  y: -10,
+                  transition: { duration: 0.2 }
+                }}
+                className="group relative"
               >
-                <div className={`inline-block bg-gradient-to-br ${feature.gradient} p-4 rounded-2xl mb-4`}>
-                  <feature.icon className="w-8 h-8 text-white" />
+                {/* Radial glow on hover */}
+                <motion.div
+                  className={`absolute inset-0 rounded-2xl bg-${feature.glowColor}-500/0 blur-xl group-hover:bg-${feature.glowColor}-500/20 transition-all duration-500`}
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                />
+                
+                {/* Card */}
+                <div className="relative h-full p-6 rounded-2xl bg-slate-800/60 backdrop-blur-xl border border-slate-700/30 overflow-hidden">
+                  {/* Gradient overlay */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.gradient}`} />
+                  
+                  {/* Icon */}
+                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.gradient} mb-4`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  
+                  {/* Content */}
+                  <h3 className="text-white mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-slate-400 text-sm">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="text-xl mb-3 text-slate-100">{feature.title}</h3>
-                <p className="text-slate-400">{feature.description}</p>
               </motion.div>
-            ))}
-          </div>
-        </motion.div>
+            );
+          })}
+        </div>
 
-        {/* How It Works */}
+        {/* Footer Badges */}
         <motion.div
-          className="mb-20"
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.2 }}
+          transition={{ delay: 1.1, duration: 0.8 }}
+          className="flex flex-col md:flex-row items-center justify-center gap-4 px-4"
         >
-          <h2 className="text-3xl md:text-4xl text-center mb-12 bg-gradient-to-r from-orange-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {steps.map((step, index) => (
+          {badges.map((badge, index) => {
+            const Icon = badge.icon;
+            return (
               <motion.div
-                key={step.title}
-                className="backdrop-blur-xl bg-slate-800/60 border border-slate-700/30 rounded-3xl p-8 text-center"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.3 + index * 0.1 }}
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.2 + index * 0.1 }}
+                className="flex items-center gap-3 px-6 py-3 rounded-full bg-slate-800/60 backdrop-blur-xl border border-slate-700/30"
               >
-                <div className="inline-block bg-gradient-to-br from-orange-500 to-purple-600 p-4 rounded-2xl mb-4">
-                  <step.icon className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl mb-2 text-slate-100">{step.title}</h3>
-                <p className="text-slate-400">{step.description}</p>
+                <Icon className="w-5 h-5 text-slate-400" />
+                <span className="text-slate-300 text-sm whitespace-nowrap">
+                  {badge.text}
+                </span>
               </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Footer */}
-        <motion.div
-          className="text-center text-slate-500"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 1.6 }}
-        >
-          <p className="mb-2">IPL Oracle</p>
-          <p className="text-sm">Powered by Firebase & AI • © 2025</p>
+            );
+          })}
         </motion.div>
       </div>
     </div>

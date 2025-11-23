@@ -13,9 +13,9 @@ from routes.ask import ask_router
 from routes.admin import admin_router
 
 # 🔧 Log environment variables for debugging
-print(f"🔧 PORT from env: {os.environ.get('PORT')}")
-print(f"🔐 GEMINI_API_KEY: {os.environ.get('GEMINI_API_KEY')}")
-print(f"🔐 PINECONE_API_KEY: {os.environ.get('PINECONE_API_KEY')}")
+#print(f"🔧 PORT from env: {os.environ.get('PORT')}")
+#print(f"🔐 GEMINI_API_KEY: {os.environ.get('GEMINI_API_KEY')}")
+#print(f"🔐 PINECONE_API_KEY: {os.environ.get('PINECONE_API_KEY')}")
 #print(f"📦 INDEX_NAME: {os.environ.get('INDEX_NAME')}")
 
 app = FastAPI(

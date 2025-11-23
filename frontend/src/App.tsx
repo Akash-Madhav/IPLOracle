@@ -1,237 +1,68 @@
-/// <reference types="vite/client" />
-import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { Login } from "./components/Login";
-import { Register } from "./components/Register";
-import { ChatHeader } from "./components/ChatHeader";
-import { ChatMessage } from "./components/ChatMessage";
-import { ChatInput } from "./components/ChatInput";
-import { TypingIndicator } from "./components/TypingIndicator";
-import { IPLDisclaimer } from "./components/IPLDisclaimer";
-import { WelcomeScreen } from "./components/WelcomeScreen";
-import { AnimatedBackground } from "./components/AnimatedBackground";
-import { generateEmbedding } from "./lib/embeddings";
+import { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LandingPage } from './components/LandingPage';
+import { Login } from './components/Login';
+import { Register } from './components/Register';
+import { ChatDashboard } from './components/ChatDashboard';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
+type Page = 'landing' | 'login' | 'register' | 'dashboard';
 
-function ChatApp() {
-  const { currentUser } = useAuth();
-  const [authView, setAuthView] = useState<
-    "login" | "register"
-  >("login");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isLoadingHistory, setIsLoadingHistory] =
-    useState(true);
+function AppContent() {
+  const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const { user, loading, signOut } = useAuth();
 
-  // ✅ Always dark mode
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
-  // ✅ Initial welcome message
-  useEffect(() => {
-    const welcomeMessage: Message = {
-      id: "welcome",
-      text: "🏏 Hello! I'm IPL Oracle, your ultimate cricket intelligence assistant. Ask me anything about IPL stats, players, teams, matches, or predictions. Let's talk cricket!",
-      isUser: false,
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMessage]);
-    setIsLoadingHistory(false);
-  }, []);
-
-  // ✅ Auto scroll to latest message
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop =
-        scrollRef.current.scrollHeight;
-    }
-  }, [messages, isTyping]);
-
-  // ✅ Handle message sending
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return;
-
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      text,
-      isUser: true,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsTyping(true);
-
-    try {
-      console.log("🟡 Generating embedding for query:", text);
-      
-      // Generate embedding for the query
-      const vector = await generateEmbedding(text);
-      console.log("✅ Embedding generated, length:", vector.length);
-
-      console.log("🟡 Sending query to backend:", text);
-
-      const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/ask`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: text, vector }),
-  }
-);
-
-
-      console.log("🟢 Received response:", response);
-
-      const data = await response.json();
-      console.log("🔵 Backend JSON:", data);
-
-      // ✅ Handle both structured and plain text responses
-      let fullBotText = "";
-
-      if (typeof data.answer === "string") {
-        // Plain string (like IPL bot)
-        fullBotText = data.answer;
-      } else if (typeof data.answer === "object") {
-        // Structured medical response
-        const concise = data.answer.concise || "";
-        const context = data.answer.context || "";
-        const resources = Array.isArray(data.answer.resources)
-          ? data.answer.resources
-          : [];
-
-        fullBotText =
-          concise || context
-            ? `**🩺 Concise:** ${concise}\n\n**📖 Context:** ${context}`
-            : "⚠️ No detailed response from backend.";
-
-        if (resources.length > 0) {
-          fullBotText += `\n\n📚 **Sources:**\n${resources
-            .map(
-              (s: any, i: number) =>
-                `${i + 1}. ${s.name}: ${s.snippet || ""}`,
-            )
-            .join("\n")}`;
-        }
-      } else {
-        fullBotText = "⚠️ Unexpected backend response format.";
-      }
-
-      const botMsg: Message = {
-        id: `bot-${Date.now()}`,
-        text: fullBotText,
-        isUser: false,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
-    } catch (error) {
-      console.error("❌ Error fetching backend:", error);
-      let errorText = "⚠️ Sorry, something went wrong. Please try again.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('embedding')) {
-          errorText = "⚠️ Failed to process your query. Please try again.";
-        } else if (error.message.includes('fetch')) {
-          errorText = "⚠️ Cannot connect to server. Please check your internet connection.";
-        }
-      }
-      
-      const errMsg: Message = {
-        id: `error-${Date.now()}`,
-        text: errorText,
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errMsg]);
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
-  // ✅ Auth handling
-  if (!currentUser) {
-    return authView === "login" ? (
-      <Login
-        onSwitchToRegister={() => setAuthView("register")}
-      />
-    ) : (
-      <Register onSwitchToLogin={() => setAuthView("login")} />
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
     );
   }
 
-  // ✅ Main chat UI
-  return (
-    <div className="relative h-screen flex flex-col overflow-hidden">
-      <AnimatedBackground />
-      <div className="relative z-10 h-screen flex flex-col">
-        <ChatHeader />
-        <IPLDisclaimer />
-        <div className="flex-1 overflow-hidden">
-          <div
-            ref={scrollRef}
-            className="h-full overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-orange-500/20 scrollbar-track-transparent"
-          >
-            <div className="max-w-6xl mx-auto">
-              {isLoadingHistory ? (
-                <div className="flex items-center justify-center h-full">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full"
-                  />
-                </div>
-              ) : (
-                <>
-                  {messages.length === 1 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.8, delay: 0.5 }}
-                    >
-                      <WelcomeScreen />
-                    </motion.div>
-                  )}
+  // If user is authenticated, show chat dashboard
+  if (user) {
+    return <ChatDashboard />;
+  }
 
-                  {messages.map((msg) => (
-                    <ChatMessage
-                      key={msg.id}
-                      message={msg.text}
-                      isUser={msg.isUser}
-                      timestamp={msg.timestamp}
-                    />
-                  ))}
-
-                  {isTyping && <TypingIndicator />}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          disabled={isTyping}
+  // Show appropriate page based on navigation state
+  switch (currentPage) {
+    case 'login':
+      return (
+        <Login
+          onSwitchToRegister={() => setCurrentPage('register')}
+          onBackToLanding={() => setCurrentPage('landing')}
         />
-      </div>
-    </div>
-  );
+      );
+    
+    case 'register':
+      return (
+        <Register
+          onSwitchToLogin={() => setCurrentPage('login')}
+          onBackToLanding={() => setCurrentPage('landing')}
+        />
+      );
+    
+    case 'landing':
+    default:
+      return (
+        <LandingPage
+          onGetStarted={() => setCurrentPage('login')}
+        />
+      );
+  }
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ChatApp />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

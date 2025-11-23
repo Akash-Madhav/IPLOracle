@@ -1,26 +1,21 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
-// Firebase configuration
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyC6T_ltsKFhHZhB528m157d0opolFoZjuM",
-  authDomain: "n8n-medi-rag.firebaseapp.com",
-  databaseURL: "https://n8n-medi-rag-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "n8n-medi-rag",
-  storageBucket: "n8n-medi-rag.firebasestorage.app",
-  messagingSenderId: "829241911025",
-  appId: "1:829241911025:web:8d53b5e293802446fa6b50",
-  measurementId: "G-RD9VX5F8FN"
+  apiKey: "AIzaSyAWan1dt-4vnZkt8-HDpLq72_OSg_M7-to",
+  authDomain: "iploracle-4c00d.firebaseapp.com",
+  projectId: "iploracle-4c00d",
+  storageBucket: "iploracle-4c00d.firebasestorage.app",
+  messagingSenderId: "3627329638",
+  appId: "1:3627329638:web:d185ef1b341ec3c6b3a5a7",
+  measurementId: "G-8VJG4NBX6L"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
-
-// Initialize Firestore with settings to handle connection issues gracefully
-export const db = initializeFirestore(app, {
-  ignoreUndefinedProperties: true,
-});
+export default app;
