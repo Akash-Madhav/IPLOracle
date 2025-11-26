@@ -4,7 +4,8 @@ import logging, time, psutil, asyncio
 from pinecone import Pinecone
 from config import Config
 
-from services.gemini import generate_answer, classify_fields  # ⬅️ import classifier
+from services.gemini import generate_answer, classify_fields, build_context_by_player
+from rapidfuzz import process  # ⬅️ fuzzy matching
 
 logger = logging.getLogger(__name__)
 ask_router = APIRouter()
@@ -24,6 +25,20 @@ async def heartbeat(interval=30):
             await asyncio.sleep(interval)
     except asyncio.CancelledError:
         print("🛑 Heartbeat stopped")
+
+# 🧠 Helper: build player list dynamically from Pinecone results
+def get_all_players(results) -> list:
+    return list({r.get("Player_Name") for r in results if r.get("Player_Name")})
+
+# 🧠 Helper: fuzzy player extraction
+def extract_players_from_query(query: str, player_names: list, threshold: int = 80) -> list:
+    found = set()
+    q_tokens = query.lower().split()
+    for token in q_tokens:
+        match = process.extractOne(token, player_names, score_cutoff=threshold)
+        if match:
+            found.add(match[0])  # canonical name
+    return list(found)
 
 @ask_router.post("/ask", response_model=AskResponse)
 async def ask_query(payload: QueryRequest) -> AskResponse:
@@ -56,27 +71,26 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
             results = [r for r in results if r.get("Year") == "2023"]
 
         # 🧠 Step 3: Sort results by the primary relevant field if numeric
-        sort_field = None
-        for f in relevant_fields:
-            if f not in ["Player_Name", "Year"]:
-                sort_field = f
-                break
+        sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
         if sort_field:
             try:
                 results = sorted(results, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
             except Exception:
                 pass
 
-        # 🧠 Step 4: Build context dynamically
-        context_lines = []
-        for r in results[:10]:  # top 10 after sorting
-            line_parts = []
-            for field in relevant_fields:
-                if r.get(field):
-                    line_parts.append(f"{field}: {r.get(field)}")
-            if line_parts:
-                context_lines.append(" | ".join(line_parts))
-        context = "\n".join(context_lines)
+        # 🧠 Step 4: Fuzzy player extraction and full context building
+        all_players = get_all_players(results)
+        players = extract_players_from_query(query, all_players)
+        logger.info(f"🧠 Fuzzy-matched players: {players}")
+
+        # Build context with all records per player (no slicing)
+        context = build_context_by_player(
+            records=results,
+            relevant_fields=relevant_fields,
+            max_per_player=None,  # ⬅️ include all records
+            target_players=players,
+            threshold=80
+        )
 
         # ✨ Generate Gemini answer
         t3 = time.time()

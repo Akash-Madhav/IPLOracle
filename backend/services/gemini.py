@@ -2,6 +2,8 @@
 
 import os
 import logging, gc, psutil, traceback
+from collections import defaultdict
+from rapidfuzz import process
 
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
@@ -119,3 +121,38 @@ Instructions:
         logger.error(f"❌ Gemini classification failed: {e}")
         logger.debug(traceback.format_exc())
         return ["Player_Name", "Year", "Runs_Scored"]
+
+def build_context_by_player(records, relevant_fields, max_per_player=None, target_players=None, threshold=80):
+    from collections import defaultdict
+    from rapidfuzz import process
+
+    grouped = defaultdict(list)
+    for r in records:
+        name = r.get("Player_Name")
+        if not name:
+            continue
+        if target_players:
+            match = process.extractOne(name, target_players, score_cutoff=threshold)
+            if not match:
+                continue
+            canonical = match[0]
+        else:
+            canonical = name
+        grouped[canonical].append(r)
+
+    context_blocks = []
+    for player, recs in grouped.items():
+        sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
+        if sort_field:
+            try:
+                recs = sorted(recs, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
+            except Exception:
+                pass
+
+        # 🔄 Remove slicing — include all records
+        for r in recs if max_per_player is None else recs[:max_per_player]:
+            parts = [f"{field}: {r.get(field)}" for field in relevant_fields if r.get(field)]
+            if parts:
+                context_blocks.append(f"{player} | " + " | ".join(parts))
+
+    return "\n".join(context_blocks)
