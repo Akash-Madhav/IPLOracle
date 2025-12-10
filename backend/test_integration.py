@@ -4,7 +4,12 @@ Tests with sample data to simulate real query scenarios
 """
 
 import sys
-sys.path.insert(0, '/home/runner/work/IPLOracle/IPLOracle/backend')
+import os
+
+# Add backend directory to path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from services.gemini import extract_years_from_query, classify_fields, build_context_by_player
 

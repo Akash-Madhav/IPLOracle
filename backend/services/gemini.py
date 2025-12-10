@@ -200,20 +200,30 @@ Output (list only):"""
     
     try:
         import google.generativeai as genai
+        import ast
         genai.configure(api_key=GEMINI_KEY)
         model = genai.GenerativeModel("gemini-2.5-flash")
 
         response = model.generate_content(prompt)
         answer_text = response.text.strip()
         
-        # Extract list from response
+        # Extract list from response safely
         if "[" in answer_text and "]" in answer_text:
             start = answer_text.index("[")
             end = answer_text.rindex("]") + 1
             list_text = answer_text[start:end]
-            fields = eval(list_text)
-            logger.info(f"✅ Gemini classified fields: {fields}")
-            return fields
+            try:
+                # Use ast.literal_eval for safe evaluation
+                fields = ast.literal_eval(list_text)
+                if isinstance(fields, list):
+                    logger.info(f"✅ Gemini classified fields: {fields}")
+                    return fields
+                else:
+                    logger.warning(f"⚠️ Gemini response not a list, using keyword fallback")
+                    return final_fields
+            except (ValueError, SyntaxError) as e:
+                logger.warning(f"⚠️ Failed to parse Gemini response: {e}, using keyword fallback")
+                return final_fields
         else:
             logger.warning(f"⚠️ Gemini response not a list, using keyword fallback: {answer_text}")
             return final_fields

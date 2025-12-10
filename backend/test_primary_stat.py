@@ -3,7 +3,12 @@ Test for identify_primary_stat function
 """
 
 import sys
-sys.path.insert(0, '/home/runner/work/IPLOracle/IPLOracle/backend')
+import os
+
+# Add backend directory to path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from services.gemini import identify_primary_stat
 
