@@ -13,6 +13,26 @@ if os.getenv("ENV") != "production":
 logger = logging.getLogger(__name__)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
+def is_superlative_query(query: str) -> bool:
+    """
+    Detect if a query is asking for superlatives (most, best, highest, etc.).
+    These queries require comprehensive data retrieval for accurate ranking.
+    
+    Returns True if the query contains superlative keywords.
+    """
+    query_lower = query.lower()
+    
+    # Superlative keywords that indicate ranking/comparison needs
+    superlative_keywords = [
+        "most", "best", "highest", "top", "maximum", "greatest",
+        "lowest", "worst", "minimum", "least", "fewest",
+        "better", "worse", "higher", "lower", "more", "less",
+        "leading", "first", "last", "who scored the", "who took",
+        "who has", "who had", "top scorer", "top wicket"
+    ]
+    
+    return any(keyword in query_lower for keyword in superlative_keywords)
+
 def extract_years_from_query(query: str) -> list:
     """
     Extract all year mentions from the query (2008-2024 IPL years)

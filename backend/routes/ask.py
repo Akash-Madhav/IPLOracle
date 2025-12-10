@@ -4,7 +4,7 @@ import logging, time, psutil, asyncio
 from pinecone import Pinecone
 from config import Config
 
-from services.gemini import generate_answer, classify_fields, build_context_by_player, extract_years_from_query, identify_primary_stat
+from services.gemini import generate_answer, classify_fields, build_context_by_player, extract_years_from_query, identify_primary_stat, is_superlative_query
 from rapidfuzz import process  # ⬅️ fuzzy matching
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,10 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
         years = extract_years_from_query(query)
         logger.info(f"📅 Extracted years from query: {years}")
         
+        # 🔎 Step 1.5: Check if this is a superlative query (most, best, highest, etc.)
+        is_superlative = is_superlative_query(query)
+        logger.info(f"🎯 Superlative query detected: {is_superlative}")
+        
         # 🔎 Step 2: Query Pinecone with semantic search
         # Use reasonable top_k for semantic search (not all records)
         t1 = time.time()
@@ -90,8 +94,19 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
             logger.info(f"🔍 Using Pinecone filter: {filter_dict}")
         
         # Query with appropriate top_k
-        # If filtering by year, use smaller top_k; otherwise use larger for broader search
-        top_k = 50 if filter_dict else 100
+        # For superlative queries with year filter, use higher top_k to ensure comprehensive results
+        # Otherwise use smaller top_k for efficiency
+        if is_superlative and filter_dict:
+            # Superlative + year filter: need comprehensive results for accurate ranking
+            top_k = 200
+        elif filter_dict:
+            # Year filter only: moderate top_k
+            top_k = 50
+        else:
+            # No filter: broader search
+            top_k = 100
+        
+        logger.info(f"📊 Using top_k={top_k} (superlative={is_superlative}, filtered={filter_dict is not None})")
         
         response = index.query(
             vector=payload.vector, 
