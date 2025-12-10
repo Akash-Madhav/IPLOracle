@@ -4,7 +4,7 @@ import logging, time, psutil, asyncio
 from pinecone import Pinecone
 from config import Config
 
-from services.gemini import generate_answer, classify_fields, build_context_by_player, extract_years_from_query
+from services.gemini import generate_answer, classify_fields, build_context_by_player, extract_years_from_query, identify_primary_stat
 from rapidfuzz import process  # ⬅️ fuzzy matching
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,33 @@ def get_all_players(results) -> list:
     return list({r.get("Player_Name") for r in results if r.get("Player_Name")})
 
 # 🧠 Helper: fuzzy player extraction
-def extract_players_from_query(query: str, player_names: list, threshold: int = 80) -> list:
+def extract_players_from_query(query: str, player_names: list, threshold: int = 75) -> list:
+    """
+    Extract player names from query using fuzzy matching.
+    Handles both single tokens and multi-word names.
+    """
     found = set()
-    q_tokens = query.lower().split()
-    for token in q_tokens:
-        match = process.extractOne(token, player_names, score_cutoff=threshold)
-        if match:
-            found.add(match[0])  # canonical name
+    query_lower = query.lower()
+    
+    # First, try to match full player names directly
+    for player in player_names:
+        if player.lower() in query_lower:
+            found.add(player)
+            continue
+        
+        # Try fuzzy matching on full name
+        if process.extractOne(player, [query], score_cutoff=threshold):
+            found.add(player)
+    
+    # If no full name match, try token-by-token fuzzy matching
+    if not found:
+        q_tokens = query_lower.split()
+        for token in q_tokens:
+            if len(token) > 2:  # Skip very short tokens
+                match = process.extractOne(token, player_names, score_cutoff=threshold)
+                if match:
+                    found.add(match[0])  # canonical name
+    
     return list(found)
 
 @ask_router.post("/ask", response_model=AskResponse)
@@ -89,9 +109,13 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
         # 🧠 Step 3: Classify query to get relevant fields
         relevant_fields = classify_fields(query)
         logger.info(f"🎯 Relevant fields: {relevant_fields}")
+        
+        # 🧠 Step 3.5: Identify primary stat for sorting
+        primary_stat = identify_primary_stat(query, relevant_fields)
+        logger.info(f"📊 Primary stat for ranking: {primary_stat}")
 
         # 🧠 Step 4: Sort results by the primary relevant field if numeric
-        sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
+        sort_field = primary_stat
         if sort_field and results:
             try:
                 # Filter and sort by the primary stat field

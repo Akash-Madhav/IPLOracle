@@ -28,6 +28,42 @@ def extract_years_from_query(query: str) -> list:
     # For now, return the explicitly mentioned years
     return sorted(list(set(years)))
 
+def identify_primary_stat(query: str, relevant_fields: list) -> str:
+    """
+    Identify the primary statistic field for sorting based on query intent.
+    Returns the most relevant field for ranking results.
+    """
+    query_lower = query.lower()
+    
+    # Stat-specific keywords mapping
+    stat_keywords = {
+        "Runs_Scored": ["runs", "run", "runs scored", "most runs", "total runs"],
+        "Batting_Strike_Rate": ["strike rate", "striking", "fastest", "quickest"],
+        "Batting_Average": ["average", "batting average", "consistency"],
+        "Wickets_Taken": ["wickets", "wicket", "most wickets", "bowling", "taken"],
+        "Economy_Rate": ["economy", "economical", "cheap", "best economy"],
+        "Bowling_Average": ["bowling average"],
+        "Centuries": ["century", "centuries", "hundred"],
+        "Half_Centuries": ["half century", "fifty", "fifties"],
+        "Sixes": ["sixes", "six", "most sixes"],
+        "Fours": ["fours", "four", "most fours"],
+        "Catches_Taken": ["catches", "catch", "fielding"],
+        "Highest_Score": ["highest score", "best score", "top score"],
+    }
+    
+    # Find the first matching stat in query
+    for field, keywords in stat_keywords.items():
+        if field in relevant_fields:
+            if any(keyword in query_lower for keyword in keywords):
+                return field
+    
+    # Default: return first non-name/year field
+    for field in relevant_fields:
+        if field not in ["Player_Name", "Year"]:
+            return field
+    
+    return "Runs_Scored"  # Ultimate fallback
+
 def generate_answer(query: str, context: str) -> str:
     if not GEMINI_KEY:
         logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain results")
