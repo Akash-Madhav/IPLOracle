@@ -4,3 +4,4 @@ __pycache__/
 .env.dev
 venv/
 dev-requirements.txt
+test_query_processing.py

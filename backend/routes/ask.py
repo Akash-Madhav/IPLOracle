@@ -54,9 +54,9 @@ def extract_players_from_query(query: str, player_names: list, threshold: int = 
 # 🧠 Helper: extract years from query
 def extract_years_from_query(query: str) -> list:
     import re
-    # Match 4-digit years (2008-2024 range for IPL)
-    years = re.findall(r'\b(20[0-2][0-9])\b', query)
-    return [year for year in years if 2008 <= int(year) <= 2024]
+    # Match 4-digit years in the IPL range (2008-2024, with some future-proofing to 2029)
+    years = re.findall(r'\b(20(?:0[8-9]|1[0-9]|2[0-9]))\b', query)
+    return [year for year in years if 2008 <= int(year) <= 2029]
 
 @ask_router.post("/ask", response_model=AskResponse)
 async def ask_query(payload: QueryRequest) -> AskResponse:
@@ -106,7 +106,13 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
         sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
         if sort_field:
             try:
-                results = sorted(results, key=lambda r: float(r.get(sort_field, "0") or 0), reverse=True)
+                def get_sort_value(r):
+                    value = r.get(sort_field)
+                    if value is None or value == "":
+                        return 0.0
+                    return float(value)
+                
+                results = sorted(results, key=get_sort_value, reverse=True)
                 print(f"✅ Sorted by {sort_field}")
             except Exception as e:
                 logger.warning(f"Could not sort by {sort_field}: {e}")

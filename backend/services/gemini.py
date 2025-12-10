@@ -195,7 +195,13 @@ def build_context_by_player(records, relevant_fields, max_per_player=None, targe
         sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
         if sort_field:
             try:
-                recs = sorted(recs, key=lambda r: float(r.get(sort_field, "0") or 0), reverse=True)
+                def get_sort_value(r):
+                    value = r.get(sort_field)
+                    if value is None or value == "":
+                        return 0.0
+                    return float(value)
+                
+                recs = sorted(recs, key=get_sort_value, reverse=True)
             except Exception:
                 pass
 
