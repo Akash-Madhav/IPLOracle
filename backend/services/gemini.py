@@ -13,25 +13,41 @@ if os.getenv("ENV") != "production":
 logger = logging.getLogger(__name__)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
+# Superlative keywords that indicate ranking/comparison queries
+# These queries require comprehensive data retrieval for accurate results
+SUPERLATIVE_KEYWORDS = [
+    "most", "best", "highest", "top", "maximum", "greatest",
+    "lowest", "worst", "minimum", "least", "fewest",
+    "better", "worse", "higher", "lower", "more", "less",
+    "leading", "first", "last", "who scored the", "who took",
+    "who has", "who had", "top scorer", "top wicket"
+]
+
 def is_superlative_query(query: str) -> bool:
     """
     Detect if a query is asking for superlatives (most, best, highest, etc.).
     These queries require comprehensive data retrieval for accurate ranking.
     
+    Uses word boundary matching to avoid false positives from substring matches.
+    
     Returns True if the query contains superlative keywords.
     """
     query_lower = query.lower()
     
-    # Superlative keywords that indicate ranking/comparison needs
-    superlative_keywords = [
-        "most", "best", "highest", "top", "maximum", "greatest",
-        "lowest", "worst", "minimum", "least", "fewest",
-        "better", "worse", "higher", "lower", "more", "less",
-        "leading", "first", "last", "who scored the", "who took",
-        "who has", "who had", "top scorer", "top wicket"
-    ]
+    # Use word boundary regex for more precise matching
+    # This avoids false positives like "remote" matching "more"
+    for keyword in SUPERLATIVE_KEYWORDS:
+        # For multi-word keywords, check direct substring match
+        if " " in keyword:
+            if keyword in query_lower:
+                return True
+        else:
+            # For single words, use word boundary matching
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, query_lower):
+                return True
     
-    return any(keyword in query_lower for keyword in superlative_keywords)
+    return False
 
 def extract_years_from_query(query: str) -> list:
     """
