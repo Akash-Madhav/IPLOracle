@@ -1,6 +1,7 @@
 # services/gemini.py
 
 import os
+import re
 import logging, gc, psutil, traceback
 from collections import defaultdict
 from rapidfuzz import process
@@ -12,50 +13,67 @@ if os.getenv("ENV") != "production":
 logger = logging.getLogger(__name__)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
+def extract_years_from_query(query: str) -> list:
+    """
+    Extract all year mentions from the query (2008-2024 IPL years)
+    Returns a list of years found in the query
+    """
+    years = []
+    # Match 4-digit years between 2008 and 2024 (IPL started in 2008)
+    year_pattern = r'\b(20(?:0[8-9]|1[0-9]|2[0-4]))\b'
+    matches = re.findall(year_pattern, query)
+    years.extend([int(year) for year in matches])
+    
+    # Also check for phrases like "last year", "this year", "previous season"
+    # For now, return the explicitly mentioned years
+    return sorted(list(set(years)))
+
 def generate_answer(query: str, context: str) -> str:
     if not GEMINI_KEY:
-        logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain FAISS results")
+        logger.warning("⚠️ GEMINI_API_KEY not found; fallback to plain results")
         return f"Top similar records found:\n{context}"
 
     if not context.strip():
-        return "⚠️ No relevant stats found in the dataset."
+        return "⚠️ No relevant stats found in the dataset for this query."
 
     prompt = f"""
-You are a cricket data analyst. Use the statistics below to answer the user's question.
+You are a precise cricket statistics analyst. Answer the question using ONLY the data provided below.
 
 Question:
 {query}
 
-Player Stats:
+Available Player Statistics:
 {context}
 
-Instructions:
-- Extract only the relevant stats from the context.
-- If multiple players or years are involved, compare or summarize clearly.
-- Do not invent data. If the answer is not in the stats, say so.
-- Avoid filler or repetition.
-- Use numbers and player names directly in your answer.
-- Be concise and stat-rich.
+Critical Instructions:
+1. Extract and use ONLY the relevant statistics from the data above
+2. Be direct and specific - state the answer with exact numbers immediately
+3. If comparing players, list them with their stats clearly
+4. If the question asks for "most" or "best", identify the top performer(s) with exact values
+5. NEVER invent or estimate data - use only what's provided
+6. If data is insufficient, clearly state what's missing
+7. Keep response concise (2-4 sentences maximum)
+8. Always mention the player name(s) and year when relevant
 
-Answer in the least amount of lines or words. Provide your result or conclusion alone.
-"""
+Answer format:
+[Direct answer with player name(s) and exact stat(s)]"""
 
     response = None
     gemini_model = None
     try:
-        logger.info(f"🧠 Gemini prompt:\n{prompt[:500]}...")
+        logger.info(f"🧠 Gemini prompt context length: {len(context)} chars")
 
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_KEY)
         gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 
         response = gemini_model.generate_content(prompt)
-        logger.info(f"📦 Gemini raw response object: {response}")
+        logger.info(f"📦 Gemini raw response received")
 
         gc.collect()
 
         answer_text = response.text.strip()
-        logger.info(f"✅ Gemini answer:\n{answer_text}")
+        logger.info(f"✅ Gemini answer length: {len(answer_text)} chars")
 
         mem = psutil.Process().memory_info().rss / 1024**2
         logger.info(f"🧠 Memory after Gemini generation: {mem:.2f} MiB")
@@ -65,12 +83,13 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
     except Exception as e:
         logger.error(f"❌ Gemini generation failed: {e}")
         logger.debug(traceback.format_exc())
-        return f"Top similar records found:\n{context}"
+        # Fallback to structured context display
+        return f"Based on the available data:\n{context[:1000]}"
 
     finally:
         # ✅ Safe cleanup
         try:
-            del response, prompt, context, gemini_model
+            del response, prompt, gemini_model
         except Exception:
             pass
         gc.collect()
@@ -78,14 +97,51 @@ Answer in the least amount of lines or words. Provide your result or conclusion 
 def classify_fields(query: str) -> list[str]:
     """
     Use Gemini to decide which fields are most relevant for the given query.
+    Falls back to keyword-based classification if Gemini is unavailable.
     """
+    # Keywords for different stat categories
+    batting_keywords = ["run", "score", "batting", "strike rate", "century", "half century", 
+                        "four", "six", "average", "highest", "total runs", "most runs"]
+    bowling_keywords = ["wicket", "bowling", "economy", "bowl", "five wicket", "four wicket",
+                        "best bowling", "taken", "maiden"]
+    fielding_keywords = ["catch", "field", "stumping", "caught"]
+    
+    query_lower = query.lower()
+    
+    # Default fields
+    base_fields = ["Player_Name", "Year"]
+    relevant_fields = []
+    
+    # Check for batting stats
+    if any(keyword in query_lower for keyword in batting_keywords):
+        relevant_fields.extend(["Runs_Scored", "Batting_Average", "Batting_Strike_Rate", 
+                               "Centuries", "Half_Centuries", "Highest_Score", "Fours", "Sixes"])
+    
+    # Check for bowling stats
+    if any(keyword in query_lower for keyword in bowling_keywords):
+        relevant_fields.extend(["Wickets_Taken", "Bowling_Average", "Economy_Rate", 
+                               "Bowling_Strike_Rate", "Best_Bowling_Match", 
+                               "Five_Wicket_Hauls", "Four_Wicket_Hauls"])
+    
+    # Check for fielding stats
+    if any(keyword in query_lower for keyword in fielding_keywords):
+        relevant_fields.extend(["Catches_Taken", "Stumpings"])
+    
+    # If no specific category, include common stats
+    if not relevant_fields:
+        relevant_fields = ["Runs_Scored", "Wickets_Taken", "Batting_Strike_Rate"]
+    
+    # Remove duplicates and add base fields
+    final_fields = base_fields + list(dict.fromkeys(relevant_fields))
+    
+    # If Gemini is available, use it for refinement
     if not GEMINI_KEY:
-        logger.warning("⚠️ GEMINI_API_KEY not found; fallback to default fields")
-        return ["Runs_Scored", "Year", "Player_Name"]
-
+        logger.info(f"✅ Keyword-based classification: {final_fields}")
+        return final_fields
+    
     prompt = f"""
-You are a cricket query classifier. Given a question, return the most relevant stat fields
-from the dataset schema below.
+You are a cricket query classifier. Given a question, return ONLY the most relevant stat fields
+from the dataset schema below. Return a Python list with NO extra text.
 
 Available fields:
 Player_Name, Year, Runs_Scored, Batting_Average, Batting_Strike_Rate, Centuries,
@@ -96,15 +152,16 @@ Five_Wicket_Hauls, Four_Wicket_Hauls, Catches_Taken, Stumpings
 Question:
 {query}
 
-Instructions:
-- Return only the most relevant fields as a Python list.
-- Always include "Player_Name" and "Year".
-- If the query is about batting, include batting stats.
-- If the query is about bowling, include bowling stats.
-- If the query is about fielding, include fielding stats.
-- Do not invent fields.
-- Example output: ["Runs_Scored", "Year", "Player_Name"]
-"""
+Rules:
+- ALWAYS include "Player_Name" and "Year"
+- Include 3-7 most relevant fields for this specific question
+- For batting questions: include batting stats
+- For bowling questions: include bowling stats  
+- For fielding questions: include fielding stats
+- Return ONLY a Python list like: ["Field1", "Field2", "Field3"]
+
+Output (list only):"""
+    
     try:
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_KEY)
@@ -112,17 +169,38 @@ Instructions:
 
         response = model.generate_content(prompt)
         answer_text = response.text.strip()
-
-        fields = eval(answer_text) if answer_text.startswith("[") else ["Player_Name", "Year"]
-        logger.info(f"✅ Classified fields: {fields}")
-        return fields
+        
+        # Extract list from response
+        if "[" in answer_text and "]" in answer_text:
+            start = answer_text.index("[")
+            end = answer_text.rindex("]") + 1
+            list_text = answer_text[start:end]
+            fields = eval(list_text)
+            logger.info(f"✅ Gemini classified fields: {fields}")
+            return fields
+        else:
+            logger.warning(f"⚠️ Gemini response not a list, using keyword fallback: {answer_text}")
+            return final_fields
 
     except Exception as e:
         logger.error(f"❌ Gemini classification failed: {e}")
-        logger.debug(traceback.format_exc())
-        return ["Player_Name", "Year", "Runs_Scored"]
+        logger.info(f"✅ Using keyword fallback: {final_fields}")
+        return final_fields
 
 def build_context_by_player(records, relevant_fields, max_per_player=None, target_players=None, threshold=80):
+    """
+    Build context by grouping records by player and including relevant fields.
+    
+    Args:
+        records: List of player records
+        relevant_fields: List of field names to include
+        max_per_player: Maximum records per player (None = all)
+        target_players: List of target player names (None = all)
+        threshold: Fuzzy matching threshold (0-100)
+    
+    Returns:
+        Formatted context string with player stats
+    """
     from collections import defaultdict
     from rapidfuzz import process
 
@@ -141,17 +219,40 @@ def build_context_by_player(records, relevant_fields, max_per_player=None, targe
         grouped[canonical].append(r)
 
     context_blocks = []
+    
+    # Determine the primary sort field (first non-name/year field)
+    sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
+    
     for player, recs in grouped.items():
-        sort_field = next((f for f in relevant_fields if f not in ["Player_Name", "Year"]), None)
+        # Sort records by the primary relevant field (highest first)
         if sort_field:
             try:
-                recs = sorted(recs, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
-            except Exception:
-                pass
+                # Filter out records where the sort field has no value or is 0
+                valid_recs = [r for r in recs if r.get(sort_field) and float(r.get(sort_field, "0")) > 0]
+                if valid_recs:
+                    recs = sorted(valid_recs, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
+                else:
+                    recs = sorted(recs, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
+            except (ValueError, TypeError):
+                # If sorting fails, sort by Year descending
+                recs = sorted(recs, key=lambda r: int(r.get("Year", "0")), reverse=True)
+        else:
+            # Default: sort by Year descending
+            recs = sorted(recs, key=lambda r: int(r.get("Year", "0")), reverse=True)
 
-        # 🔄 Remove slicing — include all records
-        for r in recs if max_per_player is None else recs[:max_per_player]:
-            parts = [f"{field}: {r.get(field)}" for field in relevant_fields if r.get(field)]
+        # Limit records per player if specified
+        selected_recs = recs if max_per_player is None else recs[:max_per_player]
+        
+        # Build context for each record
+        for r in selected_recs:
+            # Only include fields that have meaningful values
+            parts = []
+            for field in relevant_fields:
+                value = r.get(field)
+                # Skip if value is None, empty, or 0 for numeric stats
+                if value is not None and value != "" and value != "0" and value != 0:
+                    parts.append(f"{field}: {value}")
+            
             if parts:
                 context_blocks.append(f"{player} | " + " | ".join(parts))
 
