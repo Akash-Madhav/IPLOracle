@@ -28,6 +28,16 @@ This guide covers deploying the IPL Oracle application to production.
    - Auto-Deploy: Yes
    - Health Check Path: `/health`
 
+4. **Prevent Backend Idle Sleep (24/7 Keep-Alive via UptimeRobot)**:
+   Render free tier services automatically sleep after 15 minutes of inactivity. To ensure 0s response delay for all users:
+   - Create a free account at [UptimeRobot.com](https://uptimerobot.com)
+   - Click **+ Add New Monitor**
+   - **Monitor Type**: `HTTP(s)`
+   - **Friendly Name**: `IPL Oracle Backend Keep-Alive`
+   - **URL**: `https://your-backend.onrender.com/health` *(your live Render backend URL)*
+   - **Monitoring Interval**: `Every 5 minutes`
+   - Click **Create Monitor**
+
 #### Frontend Deployment
 
 1. **Create a new Static Site** in Render:

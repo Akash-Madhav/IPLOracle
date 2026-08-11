@@ -204,6 +204,7 @@ The production build will be in `frontend/build/`
 4. Create a Static Site for the frontend
 5. Configure build command: `npm run build`
 6. Configure publish directory: `build`
+7. **24/7 Backend Keep-Alive (Prevent Idle Sleep)**: Set up a free monitor at [UptimeRobot.com](https://uptimerobot.com) targeting `https://your-backend.onrender.com/health` every 5 minutes so Render never sleeps.
 
 ### Environment Variables
 
