@@ -3,6 +3,12 @@ Configuration validation and management for IPL Oracle backend
 """
 import os
 import sys
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -29,6 +35,7 @@ class Config:
     # Environment
     ENV: str
     PORT: int
+    CSV_PATH: str = "data/ipl_players.csv"
     
     @classmethod
     def load(cls) -> None:

@@ -1,7 +1,13 @@
+import os
+import sys
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # 🏏 IPL Insight Bot - FastAPI Entrypoint
 print("✅ main.py loaded")
-
-import sys
 print("🧨 Startup reached", file=sys.stderr)
 
 import os
@@ -52,15 +58,22 @@ async def warmup():
 async def favicon():
     return FileResponse("static/favicon.ico")
 
-# 🚀 Startup memory check
+# 🚀 Startup setup and memory check
 @app.on_event("startup")
 async def startup_event():
     import psutil
+    from services.player_store import player_store
+    from config import Config
+
     mem_before = psutil.Process().memory_info().rss / 1024**2
-    print(f"🧠 Memory before startup: {mem_before:.2f} MiB")
+    print(f"🧠 Memory before player store initialization: {mem_before:.2f} MiB")
+
+    # Load in-memory indexed player database from CSV
+    player_store.load(Config.CSV_PATH)
+
     gc.collect()
     mem_after = psutil.Process().memory_info().rss / 1024**2
-    print(f"🧠 Memory after cleanup: {mem_after:.2f} MiB")
+    print(f"🧠 Total Memory after startup: {mem_after:.2f} MiB")
     print("✅ Startup setup complete")
 
 # 🏠 Home route

@@ -1,72 +1,88 @@
-from fastapi import APIRouter
-from models.query import QueryRequest, AskResponse
+from fastapi import APIRouter, HTTPException
+from models.query import QueryRequest, AskResponse, PlayerListResponse, PlayerDetailResponse
 import logging, time, psutil, asyncio
-from pinecone import Pinecone
+from typing import Optional, List, Dict
 from config import Config
 
-from services.gemini import generate_answer, classify_fields, build_context_by_player, extract_years_from_query, identify_primary_stat, is_superlative_query
-from rapidfuzz import process  # ⬅️ fuzzy matching
+from services.gemini import (
+    generate_answer, 
+    classify_fields, 
+    build_context_by_player, 
+    extract_years_from_query, 
+    identify_primary_stat, 
+    is_superlative_query
+)
+from services.player_store import player_store
+
+import re
+
+def safe_float(val) -> float:
+    if not val:
+        return 0.0
+    try:
+        cleaned = re.sub(r"[^\d.]", "", str(val))
+        return float(cleaned) if cleaned else 0.0
+    except (ValueError, TypeError):
+        return 0.0
 
 logger = logging.getLogger(__name__)
 ask_router = APIRouter()
 
-# 🔗 Connect to Pinecone
-pc = Pinecone(api_key=Config.PINECONE_API_KEY)
-index = pc.Index(Config.INDEX_NAME)
+# Lazy Pinecone index initialization
+_pinecone_index = None
+
+def get_pinecone_index():
+    global _pinecone_index
+    if _pinecone_index is None:
+        from pinecone import Pinecone
+        pc = Pinecone(api_key=Config.PINECONE_API_KEY)
+        _pinecone_index = pc.Index(Config.INDEX_NAME)
+    return _pinecone_index
+
 
 @ask_router.get("/ask")
 async def ask_info():
     return {"message": "POST { 'query': '...', 'vector': [...] }"}
 
+
+@ask_router.get("/players", response_model=PlayerListResponse)
+async def get_all_players():
+    """Return a list of all available player names in the database."""
+    start = time.time()
+    names = player_store.get_all_player_names()
+    logger.info(f"⚡ /players returned {len(names)} players in {(time.time() - start)*1000:.2f}ms")
+    return PlayerListResponse(total_players=len(names), players=names)
+
+
+@ask_router.get("/players/{player_name}", response_model=PlayerDetailResponse)
+async def get_player_by_name(player_name: str):
+    """Return complete records for a specific player by name (O(1) indexed lookup)."""
+    start = time.time()
+    records = player_store.get_player_records(player_name)
+    if not records:
+        raise HTTPException(status_code=404, detail=f"Player '{player_name}' not found")
+    canonical_name = records[0].get("Player_Name", player_name)
+    logger.info(f"⚡ /players/{player_name} returned {len(records)} records in {(time.time() - start)*1000:.2f}ms")
+    return PlayerDetailResponse(
+        player_name=canonical_name,
+        total_records=len(records),
+        records=records
+    )
+
+
 async def heartbeat(interval=30):
     try:
         while True:
-            print("🔄 Heartbeat: still processing...")
             await asyncio.sleep(interval)
     except asyncio.CancelledError:
-        print("🛑 Heartbeat stopped")
+        pass
 
-# 🧠 Helper: build player list dynamically from Pinecone results
-def get_all_players(results) -> list:
-    return list({r.get("Player_Name") for r in results if r.get("Player_Name")})
-
-# 🧠 Helper: fuzzy player extraction
-def extract_players_from_query(query: str, player_names: list, threshold: int = 75) -> list:
-    """
-    Extract player names from query using fuzzy matching.
-    Handles both single tokens and multi-word names.
-    """
-    found = set()
-    query_lower = query.lower()
-    
-    # First, try to match full player names directly
-    for player in player_names:
-        if player.lower() in query_lower:
-            found.add(player)
-            continue
-        
-        # Try fuzzy matching on full name
-        if process.extractOne(player, [query], score_cutoff=threshold):
-            found.add(player)
-    
-    # If no full name match, try token-by-token fuzzy matching
-    if not found:
-        q_tokens = query_lower.split()
-        for token in q_tokens:
-            if len(token) > 2:  # Skip very short tokens
-                match = process.extractOne(token, player_names, score_cutoff=threshold)
-                if match:
-                    found.add(match[0])  # canonical name
-    
-    return list(found)
 
 @ask_router.post("/ask", response_model=AskResponse)
 async def ask_query(payload: QueryRequest) -> AskResponse:
     start_time = time.time()
     query = payload.query.strip() if payload.query else ""
-
-    if not payload.vector:
-        return AskResponse(query=query, answer="⚠️ Provide a vector embedding.", results=[])
+    vector = payload.vector
 
     logger.info(f"🟢 Query received: {query}")
     heartbeat_task = asyncio.create_task(heartbeat())
@@ -76,105 +92,112 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
         years = extract_years_from_query(query)
         logger.info(f"📅 Extracted years from query: {years}")
         
-        # 🔎 Step 1.5: Check if this is a superlative query (most, best, highest, etc.)
+        # 🔎 Step 2: Check if superlative query
         is_superlative = is_superlative_query(query)
         logger.info(f"🎯 Superlative query detected: {is_superlative}")
-        
-        # 🔎 Step 2: Query Pinecone with semantic search
-        # Use reasonable top_k for semantic search (not all records)
-        t1 = time.time()
-        
-        # Build metadata filter if years are specified
-        filter_dict = None
-        if years:
-            if len(years) == 1:
-                filter_dict = {"Year": {"$eq": str(years[0])}}
+
+        # 🔎 Step 3: Fast deterministic player lookup
+        detected_players = player_store.extract_players_from_query(query)
+        logger.info(f"👤 Detected player names in query: {detected_players}")
+
+        results: List[Dict] = []
+        retrieval_method = "unknown"
+
+        # OPTIMIZATION FLOW
+        # Option A: Exact/Fuzzy player names detected in query -> Deterministic lookup (No vector search needed)
+        if detected_players and player_store.is_loaded:
+            t1 = time.time()
+            retrieval_method = "direct_player_store"
+            for p in detected_players:
+                p_recs = player_store.get_player_records(p)
+                if years:
+                    p_recs = [r for r in p_recs if r.get("Year") in [str(y) for y in years]]
+                results.extend(p_recs)
+            logger.info(f"⚡ Direct player lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
+
+        # Option B: Superlative query -> Direct in-memory lookup over dataset (No vector search needed)
+        elif is_superlative and player_store.is_loaded:
+            t1 = time.time()
+            retrieval_method = "superlative_player_store"
+            if years:
+                results = player_store.get_records_by_years(years)
             else:
-                filter_dict = {"Year": {"$in": [str(y) for y in years]}}
-            logger.info(f"🔍 Using Pinecone filter: {filter_dict}")
-        
-        # Query with appropriate top_k
-        # For superlative queries with year filter, use higher top_k to ensure comprehensive results
-        # Otherwise use smaller top_k for efficiency
-        if is_superlative and filter_dict:
-            # Superlative + year filter: need comprehensive results for accurate ranking
-            top_k = 200
-        elif filter_dict:
-            # Year filter only: moderate top_k
-            top_k = 50
-        else:
-            # No filter: broader search
-            top_k = 100
-        
-        logger.info(f"📊 Using top_k={top_k} (superlative={is_superlative}, filtered={filter_dict is not None})")
-        
-        response = index.query(
-            vector=payload.vector, 
-            top_k=top_k, 
-            include_metadata=True,
-            filter=filter_dict
-        )
-        print(f"⏱ Pinecone search: {time.time() - t1:.2f}s")
+                results = player_store.get_all_records()
+            logger.info(f"⚡ Superlative in-memory lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
 
-        # 🧹 Collect metadata
-        raw_results = [match.metadata for match in response["matches"]]
-        results = [r for r in raw_results if r]
-        logger.info(f"📊 Retrieved {len(results)} records from Pinecone")
+        # Option C: Semantic fallback -> Use Pinecone vector search
+        elif vector and len(vector) > 0:
+            t1 = time.time()
+            retrieval_method = "pinecone_vector_search"
+            filter_dict = None
+            if years:
+                if len(years) == 1:
+                    filter_dict = {"Year": {"$eq": str(years[0])}}
+                else:
+                    filter_dict = {"Year": {"$in": [str(y) for y in years]}}
 
-        # 🧠 Step 3: Classify query to get relevant fields
+            top_k = 200 if (is_superlative and filter_dict) else (50 if filter_dict else 100)
+            index = get_pinecone_index()
+            response = index.query(
+                vector=vector, 
+                top_k=top_k, 
+                include_metadata=True,
+                filter=filter_dict
+            )
+            raw_results = [match.metadata for match in response["matches"]]
+            results = [r for r in raw_results if r]
+            logger.info(f"🌐 Pinecone vector search fetched {len(results)} records in {time.time() - t1:.2f}s")
+
+        # Option D: Fallback to all player store records if no vector provided
+        elif player_store.is_loaded:
+            retrieval_method = "fallback_all_store"
+            if years:
+                results = player_store.get_records_by_years(years)
+            else:
+                results = player_store.get_all_records()
+
+        logger.info(f"📊 Total retrieved records: {len(results)} via [{retrieval_method}]")
+
+        # 🧠 Step 4: Classify fields & identify primary stat for ranking
         relevant_fields = classify_fields(query)
-        logger.info(f"🎯 Relevant fields: {relevant_fields}")
-        
-        # 🧠 Step 3.5: Identify primary stat for sorting
         primary_stat = identify_primary_stat(query, relevant_fields)
-        logger.info(f"📊 Primary stat for ranking: {primary_stat}")
+        logger.info(f"🎯 Relevant fields: {relevant_fields}, Primary stat: {primary_stat}")
 
-        # 🧠 Step 4: Sort results by the primary relevant field if numeric
-        sort_field = primary_stat
-        if sort_field and results:
+        # 🧠 Step 5: Sort results by primary stat if applicable
+        if primary_stat and results:
             try:
-                # Filter and sort by the primary stat field
-                valid_results = [r for r in results if r.get(sort_field) and float(r.get(sort_field, "0")) > 0]
+                valid_results = [r for r in results if safe_float(r.get(primary_stat)) > 0]
                 if valid_results:
-                    results = sorted(valid_results, key=lambda r: float(r.get(sort_field, "0")), reverse=True)
-                    logger.info(f"✅ Sorted {len(results)} results by {sort_field}")
+                    results = sorted(valid_results, key=lambda r: safe_float(r.get(primary_stat)), reverse=True)
             except Exception as e:
-                logger.warning(f"⚠️ Sorting by {sort_field} failed: {e}")
-
-        # 🧠 Step 5: Fuzzy player extraction from query
-        all_players = get_all_players(results)
-        players = extract_players_from_query(query, all_players, threshold=75)
-        logger.info(f"🧠 Fuzzy-matched players from query: {players}")
+                logger.warning(f"⚠️ Sorting by {primary_stat} failed: {e}")
 
         # 🧠 Step 6: Build focused context
-        # If specific players are mentioned, limit to top records per player
-        # If no specific players, use top overall records
-        max_records_per_player = 5 if players else None
-        
+        players_for_context = detected_players if detected_players else None
+        max_records_per_player = 5 if players_for_context else None
+
         context = build_context_by_player(
             records=results,
             relevant_fields=relevant_fields,
             max_per_player=max_records_per_player,
-            target_players=players if players else None,
+            target_players=players_for_context,
             threshold=75
         )
-        
-        logger.info(f"📝 Context length: {len(context)} chars, {len(context.split(chr(10)))} lines")
 
-        # ✨ Step 7: Generate Gemini answer
+        # ✨ Step 7: Generate answer via Gemini
         t3 = time.time()
         try:
             answer = generate_answer(query, context) if query else "Vector-only query"
         except Exception as e:
             answer = "⚠️ Answer generation failed. Please try again."
             logger.error(f"Gemini error: {e}")
-        print(f"⏱ Gemini: {time.time() - t3:.2f}s")
+        logger.info(f"⏱ Gemini answer generated in {time.time() - t3:.2f}s")
 
         mem_used = psutil.Process().memory_info().rss / 1024**2
-        print(f"🧠 Memory after query: {mem_used:.2f} MiB")
-        print(f"⏱ Total query time: {time.time() - start_time:.2f}s")
+        logger.info(f"🧠 Memory after query: {mem_used:.2f} MiB")
+        logger.info(f"⏱ Total query response time: {time.time() - start_time:.2f}s")
 
-        return AskResponse(query=query, answer=answer, results=results[:20])  # Return top 20 results
+        return AskResponse(query=query, answer=answer, results=results[:20])
 
     finally:
         heartbeat_task.cancel()

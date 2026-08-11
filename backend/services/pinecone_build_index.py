@@ -1,5 +1,11 @@
 import os
 import sys
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -72,11 +78,11 @@ for i, row in df.iterrows():
 
     # Upload every 100 records
     if len(batch) == 100:
-        index.upsert(batch)
+        index.upsert(vectors=batch)
         batch = []
 
 # Upload remaining
 if batch:
-    index.upsert(batch)
+    index.upsert(vectors=batch)
 
 print(f"✅ Upload complete. Total records: {len(df)}")
