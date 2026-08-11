@@ -10,7 +10,8 @@ from services.gemini import (
     build_context_by_player, 
     extract_years_from_query, 
     identify_primary_stat, 
-    is_superlative_query
+    is_superlative_query,
+    analyze_query_intent
 )
 from services.player_store import player_store
 
@@ -27,6 +28,12 @@ def safe_float(val) -> float:
 
 logger = logging.getLogger(__name__)
 ask_router = APIRouter()
+
+# 💓 Heartbeat logger for long background requests
+async def heartbeat():
+    while True:
+        await asyncio.sleep(5)
+        logger.info("💓 Backend actively processing request...")
 
 # Lazy Pinecone index initialization
 _pinecone_index = None
@@ -46,36 +53,22 @@ async def ask_info():
 
 
 @ask_router.get("/players", response_model=PlayerListResponse)
-async def get_all_players():
-    """Return a list of all available player names in the database."""
-    start = time.time()
-    names = player_store.get_all_player_names()
-    logger.info(f"⚡ /players returned {len(names)} players in {(time.time() - start)*1000:.2f}ms")
-    return PlayerListResponse(total_players=len(names), players=names)
+async def get_all_players() -> PlayerListResponse:
+    t1 = time.time()
+    players = player_store.get_all_player_names()
+    logger.info(f"⚡ Fetched {len(players)} player names in {(time.time() - t1)*1000:.2f}ms")
+    return PlayerListResponse(total_players=len(players), players=players)
 
 
 @ask_router.get("/players/{player_name}", response_model=PlayerDetailResponse)
-async def get_player_by_name(player_name: str):
-    """Return complete records for a specific player by name (O(1) indexed lookup)."""
-    start = time.time()
-    records = player_store.get_player_records(player_name)
-    if not records:
-        raise HTTPException(status_code=404, detail=f"Player '{player_name}' not found")
-    canonical_name = records[0].get("Player_Name", player_name)
-    logger.info(f"⚡ /players/{player_name} returned {len(records)} records in {(time.time() - start)*1000:.2f}ms")
-    return PlayerDetailResponse(
-        player_name=canonical_name,
-        total_records=len(records),
-        records=records
-    )
-
-
-async def heartbeat(interval=30):
-    try:
-        while True:
-            await asyncio.sleep(interval)
-    except asyncio.CancelledError:
-        pass
+async def get_player_by_name(player_name: str) -> PlayerDetailResponse:
+    t1 = time.time()
+    recs = player_store.get_player_records(player_name)
+    if not recs:
+        raise HTTPException(status_code=404, detail=f"Player '{player_name}' not found.")
+    canonical_name = recs[0].get("Player_Name", player_name)
+    logger.info(f"⚡ Direct lookup for '{canonical_name}' returned {len(recs)} records in {(time.time() - t1)*1000:.2f}ms")
+    return PlayerDetailResponse(player_name=canonical_name, total_records=len(recs), records=recs)
 
 
 @ask_router.post("/ask", response_model=AskResponse)
@@ -88,42 +81,46 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
     heartbeat_task = asyncio.create_task(heartbeat())
 
     try:
-        # 🔎 Step 1: Extract years from query
-        years = extract_years_from_query(query)
-        logger.info(f"📅 Extracted years from query: {years}")
-        
-        # 🔎 Step 2: Check if superlative query
-        is_superlative = is_superlative_query(query)
-        logger.info(f"🎯 Superlative query detected: {is_superlative}")
+        # 🧠 Step 1: Pre-Fetch AI Query Intent Analysis (Gemini AI as Deciding Factor)
+        ai_intent = analyze_query_intent(query)
+        logger.info(f"🤖 Gemini AI Router Decision: {ai_intent}")
 
-        # 🔎 Step 3: Fast deterministic player lookup
-        detected_players = player_store.extract_players_from_query(query)
-        logger.info(f"👤 Detected player names in query: {detected_players}")
+        intent = ai_intent.get("query_intent", "general_semantic")
+        detected_players = ai_intent.get("target_players", [])
+        years = ai_intent.get("target_years", [])
+        recommended_strategy = ai_intent.get("recommended_strategy", "vector_search")
+        is_superlative = (intent == "superlative_ranking") or is_superlative_query(query)
+
+        # Fallback entity extraction if Gemini missed them
+        if not detected_players:
+            detected_players = player_store.extract_players_from_query(query)
+        if not years:
+            years = extract_years_from_query(query)
 
         results: List[Dict] = []
         retrieval_method = "unknown"
 
-        # OPTIMIZATION FLOW
-        # Option A: Exact/Fuzzy player names detected in query -> Deterministic lookup (No vector search needed)
-        if detected_players and player_store.is_loaded:
+        # OPTIMIZATION FETCHING FLOW (GUIDED BY GEMINI AI)
+        # Option A: Direct Player Store Lookup (Guided by Gemini AI player/comparison decision)
+        if (recommended_strategy == "direct_player_store" or detected_players) and player_store.is_loaded:
             t1 = time.time()
-            retrieval_method = "direct_player_store"
+            retrieval_method = "direct_player_store_ai_guided"
             for p in detected_players:
                 p_recs = player_store.get_player_records(p)
                 if years:
                     p_recs = [r for r in p_recs if r.get("Year") in [str(y) for y in years]]
                 results.extend(p_recs)
-            logger.info(f"⚡ Direct player lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
+            logger.info(f"⚡ Gemini-Guided Direct player lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
 
-        # Option B: Superlative query -> Direct in-memory lookup over dataset (No vector search needed)
-        elif is_superlative and player_store.is_loaded:
+        # Option B: Superlative Ranking Lookup (Guided by Gemini AI ranking decision)
+        elif (recommended_strategy == "superlative_store" or is_superlative) and player_store.is_loaded:
             t1 = time.time()
-            retrieval_method = "superlative_player_store"
+            retrieval_method = "superlative_player_store_ai_guided"
             if years:
                 results = player_store.get_records_by_years(years)
             else:
                 results = player_store.get_all_records()
-            logger.info(f"⚡ Superlative in-memory lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
+            logger.info(f"⚡ Gemini-Guided Superlative in-memory lookup fetched {len(results)} records in {(time.time() - t1)*1000:.2f}ms")
 
         # Option C: Semantic fallback -> Use Pinecone vector search
         elif vector and len(vector) > 0:

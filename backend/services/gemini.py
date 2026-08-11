@@ -49,19 +49,133 @@ def is_superlative_query(query: str) -> bool:
     
     return False
 
+def analyze_query_intent(query: str) -> dict:
+    """
+    Use Gemini AI as the primary deciding factor (Pre-Fetch Query Intent Router) to analyze
+    the user's question before fetching data from the database.
+    
+    Returns a dict with:
+      - query_intent: "player_comparison" | "player_lookup" | "superlative_ranking" | "general_semantic"
+      - target_players: list of canonical player names
+      - target_years: list of integer years
+      - primary_stat_focus: str (e.g. "Runs_Scored")
+      - recommended_strategy: "direct_player_store" | "superlative_store" | "vector_search"
+      - ai_decided: bool
+    """
+    from services.player_store import player_store
+
+    # Local fallback routing
+    fallback_players = player_store.extract_players_from_query(query) if player_store.is_loaded else []
+    fallback_years = extract_years_from_query(query)
+    fallback_superlative = is_superlative_query(query)
+
+    if fallback_players:
+        fallback_strategy = "direct_player_store"
+        fallback_intent = "player_comparison" if len(fallback_players) > 1 else "player_lookup"
+    elif fallback_superlative:
+        fallback_strategy = "superlative_store"
+        fallback_intent = "superlative_ranking"
+    else:
+        fallback_strategy = "vector_search"
+        fallback_intent = "general_semantic"
+
+    fallback_dict = {
+        "query_intent": fallback_intent,
+        "target_players": fallback_players,
+        "target_years": fallback_years,
+        "primary_stat_focus": "Runs_Scored",
+        "recommended_strategy": fallback_strategy,
+        "ai_decided": False
+    }
+
+    if not GEMINI_KEY:
+        logger.info(f"🧠 Gemini Router (local fallback): {fallback_dict}")
+        return fallback_dict
+
+    prompt = f"""You are a Cricket Query Intent Analyzer and Router for the IPL Oracle Database.
+Analyze the user's question and decide the exact retrieval strategy before querying the database.
+
+Question:
+{query}
+
+Output ONLY a raw JSON object (with NO markdown backticks or extra text) following this exact schema:
+{{
+  "query_intent": "player_comparison" | "player_lookup" | "superlative_ranking" | "general_semantic",
+  "target_players": ["Player Name 1", "Player Name 2"],
+  "target_years": [2023],
+  "primary_stat_focus": "Runs_Scored" | "Wickets_Taken" | "Batting_Strike_Rate" | "Economy_Rate" | "Batting_Average",
+  "recommended_strategy": "direct_player_store" | "superlative_store" | "vector_search"
+}}
+
+Rules:
+- "target_players": List full names of any specific players mentioned (e.g. "Virat Kohli", "Rohit Sharma", "Jasprit Bumrah"). If no specific player, return [].
+- "target_years": List any 4-digit IPL years mentioned (2008-2024). If no year, return [].
+- "recommended_strategy":
+    - Use "direct_player_store" if 1 or more specific players are mentioned.
+    - Use "superlative_store" if asking for top/most/best performers (e.g. most runs, highest strike rate).
+    - Use "vector_search" for general semantic questions without specific players or superlatives.
+
+JSON Output:"""
+
+    try:
+        import google.generativeai as genai
+        import json, time
+
+        genai.configure(api_key=GEMINI_KEY)
+        models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+
+        for model_name in models_to_try:
+            try:
+                gemini_model = genai.GenerativeModel(model_name)
+                response = gemini_model.generate_content(prompt)
+                if response and hasattr(response, "text") and response.text:
+                    txt = response.text.strip()
+                    if "```json" in txt:
+                        txt = txt.split("```json")[1].split("```")[0].strip()
+                    elif "```" in txt:
+                        txt = txt.split("```")[1].split("```")[0].strip()
+
+                    parsed = json.loads(txt)
+                    if isinstance(parsed, dict) and "recommended_strategy" in parsed:
+                        # Normalize target players against PlayerStore if loaded
+                        if player_store.is_loaded and parsed.get("target_players"):
+                            norm_players = []
+                            for p in parsed["target_players"]:
+                                canon = player_store.get_canonical_name(p)
+                                if canon:
+                                    norm_players.append(canon)
+                                else:
+                                    norm_players.append(p)
+                            parsed["target_players"] = list(dict.fromkeys(norm_players))
+
+                        parsed["ai_decided"] = True
+                        logger.info(f"🧠 Gemini AI Router Decision ({model_name}): strategy={parsed.get('recommended_strategy')}, players={parsed.get('target_players')}, years={parsed.get('target_years')}")
+                        return parsed
+            except Exception as e:
+                err_str = str(e).lower()
+                if "429" in err_str or "rate limit" in err_str:
+                    time.sleep(1.0)
+                    continue
+                else:
+                    logger.warning(f"⚠️ Gemini Router model {model_name} failed: {e}")
+                    break
+
+    except Exception as e:
+        logger.error(f"❌ Gemini AI Router analysis failed: {e}")
+
+    logger.info(f"🧠 Gemini Router falling back to RapidFuzz/Regex router: {fallback_dict}")
+    return fallback_dict
+
+
 def extract_years_from_query(query: str) -> list:
     """
     Extract all year mentions from the query (2008-2024 IPL years)
     Returns a list of years found in the query
     """
     years = []
-    # Match 4-digit years between 2008 and 2024 (IPL started in 2008)
     year_pattern = r'\b(20(?:0[8-9]|1[0-9]|2[0-4]))\b'
     matches = re.findall(year_pattern, query)
     years.extend([int(year) for year in matches])
-    
-    # Also check for phrases like "last year", "this year", "previous season"
-    # For now, return the explicitly mentioned years
     return sorted(list(set(years)))
 
 def identify_primary_stat(query: str, relevant_fields: list) -> str:
