@@ -5,6 +5,5 @@ psutil
 numpy
 pinecone
 python-dotenv
-sentence-transformers
 pandas
 rapidfuzz
