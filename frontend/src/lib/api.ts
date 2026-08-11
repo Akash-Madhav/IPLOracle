@@ -48,3 +48,53 @@ export async function askIPLOracle(query: string): Promise<ChatResponse> {
     throw error;
   }
 }
+
+/**
+ * Ping backend health endpoint to check status and prevent backend spin-down / sleep on free hosting (e.g. Render)
+ */
+export async function checkBackendHealth(): Promise<{ status: string; ok: boolean }> {
+  try {
+    const res = await fetch(`${API_URL}/health`, { method: 'GET', cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      return { status: data.status || 'ok', ok: true };
+    }
+    return { status: 'degraded', ok: false };
+  } catch (error) {
+    console.warn('Backend health ping failed:', error);
+    return { status: 'offline', ok: false };
+  }
+}
+
+/**
+ * Start recurring background health ping to keep backend active and prevent idle spin-down.
+ * Defaults to pinging every 5 minutes (300,000 ms).
+ */
+export function startHealthPing(intervalMs: number = 300000): () => void {
+  // Initial immediate wake-up ping
+  checkBackendHealth();
+
+  // Periodic recurring ping
+  const intervalId = setInterval(() => {
+    checkBackendHealth();
+  }, intervalMs);
+
+  // Ping when browser tab becomes active again
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      checkBackendHealth();
+    }
+  };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  }
+
+  // Cleanup function
+  return () => {
+    clearInterval(intervalId);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+  };
+}

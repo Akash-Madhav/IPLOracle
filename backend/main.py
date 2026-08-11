@@ -81,7 +81,15 @@ async def startup_event():
 def home():
     return {"status": "ok", "message": "🏏 IPL Insight Bot backend is running!"}
 
-# ❤️ Health check
+# ❤️ Health check (keeps backend active and prevents spin-down)
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    from services.player_store import player_store
+    import time
+    return {
+        "status": "ok",
+        "service": "IPL Insight Bot Backend",
+        "database_loaded": player_store.is_loaded,
+        "players_count": len(player_store.get_all_player_names()),
+        "timestamp": int(time.time())
+    }

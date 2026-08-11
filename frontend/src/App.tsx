@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ChatDashboard } from './components/ChatDashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { startHealthPing } from './lib/api';
 
 type Page = 'landing' | 'login' | 'register' | 'dashboard';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Start background health ping to keep backend warm and prevent sleep
+  useEffect(() => {
+    const cleanup = startHealthPing(300000); // Ping every 5 minutes
+    return cleanup;
+  }, []);
 
   // Show loading state while checking auth
   if (loading) {

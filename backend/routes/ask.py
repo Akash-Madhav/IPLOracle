@@ -172,9 +172,19 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
             except Exception as e:
                 logger.warning(f"⚠️ Sorting by {primary_stat} failed: {e}")
 
-        # 🧠 Step 6: Build focused context
+        # 🧠 Step 6: Build focused context with adaptive limits
         players_for_context = detected_players if detected_players else None
-        max_records_per_player = 5 if players_for_context else None
+        
+        # Adaptive record limits per player:
+        # - Specific player / comparison query: None (include ALL years of career)
+        # - Superlative ranking query: 3 records per player
+        # - Broad / no-player query: 2 records per player
+        if players_for_context:
+            max_records_per_player = None
+        elif is_superlative:
+            max_records_per_player = 3
+        else:
+            max_records_per_player = 2
 
         context = build_context_by_player(
             records=results,
@@ -197,7 +207,25 @@ async def ask_query(payload: QueryRequest) -> AskResponse:
         logger.info(f"🧠 Memory after query: {mem_used:.2f} MiB")
         logger.info(f"⏱ Total query response time: {time.time() - start_time:.2f}s")
 
-        return AskResponse(query=query, answer=answer, results=results[:20])
+        # 🧹 Strip zero / null / empty fields from returned results payload to clean up response
+        cleaned_results = []
+        for r in results:
+            clean_r = {k: v for k, v in r.items() if v not in (None, "", "0", 0, "0.0")}
+            if clean_r:
+                cleaned_results.append(clean_r)
+
+        # Adaptive response result capping:
+        # - If specific players detected: return ALL clean records for those players
+        # - If superlative: return top 30
+        # - Default: return top 20
+        if detected_players:
+            final_results = cleaned_results
+        elif is_superlative:
+            final_results = cleaned_results[:30]
+        else:
+            final_results = cleaned_results[:20]
+
+        return AskResponse(query=query, answer=answer, results=final_results)
 
     finally:
         heartbeat_task.cancel()
