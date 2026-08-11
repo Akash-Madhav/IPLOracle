@@ -3,7 +3,7 @@ import { generateEmbedding } from './embeddings';
 
 const API_URL = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL 
   ? import.meta.env.VITE_API_URL 
-  : 'https://iploracle-2wxn.onrender.com';
+  : 'http://localhost:8000';
 
 export interface ChatResponse {
   query: string;
@@ -50,36 +50,39 @@ export async function askIPLOracle(query: string): Promise<ChatResponse> {
 }
 
 /**
- * Ping backend health endpoint to check status and prevent backend spin-down / sleep on free hosting (e.g. Render)
+ * Ping backend health endpoint (/health) to keep the Render server alive and warm.
  */
 export async function checkBackendHealth(): Promise<{ status: string; ok: boolean }> {
   try {
     const res = await fetch(`${API_URL}/health`, { method: 'GET', cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      return { status: data.status || 'ok', ok: true };
+      console.log(`💓 [Keep-Alive] Backend health check successful (${API_URL}/health):`, data);
+      return { status: data.status || 'alive', ok: true };
     }
     return { status: 'degraded', ok: false };
   } catch (error) {
-    console.warn('Backend health ping failed:', error);
+    console.warn('⚠️ [Keep-Alive] Backend health check ping failed:', error);
     return { status: 'offline', ok: false };
   }
 }
 
 /**
  * Start recurring background health ping to keep backend active and prevent idle spin-down.
- * Defaults to pinging every 5 minutes (300,000 ms).
+ * Runs every 5 minutes (300,000 ms).
  */
 export function startHealthPing(intervalMs: number = 300000): () => void {
-  // Initial immediate wake-up ping
+  console.log(`🚀 [Health Service] Initialized background keep-alive for ${API_URL} (ping interval: ${intervalMs / 1000}s / 5 mins)`);
+  
+  // Initial wake-up ping
   checkBackendHealth();
 
-  // Periodic recurring ping
+  // Periodic 5-minute ping
   const intervalId = setInterval(() => {
     checkBackendHealth();
   }, intervalMs);
 
-  // Ping when browser tab becomes active again
+  // Ping when tab becomes visible again
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
       checkBackendHealth();
@@ -90,7 +93,6 @@ export function startHealthPing(intervalMs: number = 300000): () => void {
     document.addEventListener('visibilitychange', handleVisibilityChange);
   }
 
-  // Cleanup function
   return () => {
     clearInterval(intervalId);
     if (typeof document !== 'undefined') {
