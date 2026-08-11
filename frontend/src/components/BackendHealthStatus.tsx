@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Activity, RefreshCw } from 'lucide-react';
 import { checkBackendHealth } from '../lib/api';
 
-const PING_INTERVAL_SECONDS = 60; // Ping every 60 seconds (1 minute)
+const PING_INTERVAL_SECONDS = 300; // Ping every 300 seconds (5 minutes)
 
 export function BackendHealthStatus() {
   const [status, setStatus] = useState<'checking' | 'active' | 'degraded' | 'offline'>('checking');
@@ -12,51 +12,62 @@ export function BackendHealthStatus() {
   const [isPinging, setIsPinging] = useState(false);
   const [secondsUntilNextPing, setSecondsUntilNextPing] = useState<number>(PING_INTERVAL_SECONDS);
   const [showTooltip, setShowTooltip] = useState(false);
-  
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const performHealthCheck = async () => {
+  const performHealthCheck = useCallback(async () => {
     setIsPinging(true);
+    console.log(`🔍 [Keep-Alive] Sending health check request to backend...`);
     try {
       const result = await checkBackendHealth();
       if (result.ok) {
         setStatus('active');
         setLastPingTime(new Date());
         setPingCount((prev) => prev + 1);
+        console.log(`✅ [Keep-Alive] Backend health check OK (Status: ${result.status})`);
       } else {
         setStatus('degraded');
+        console.warn(`⚠️ [Keep-Alive] Backend health check returned non-OK status`);
       }
     } catch (err) {
       setStatus('offline');
+      console.error(`❌ [Keep-Alive] Backend health check failed:`, err);
     } finally {
       setIsPinging(false);
     }
-  };
+  }, []);
 
-  // Perform initial ping & countdown ticker
+  // Perform initial ping on mount
   useEffect(() => {
     performHealthCheck();
+  }, [performHealthCheck]);
 
-    // Per-second countdown timer
-    timerRef.current = setInterval(() => {
+  // Per-second countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
       setSecondsUntilNextPing((prev) => {
         if (prev <= 1) {
-          performHealthCheck();
-          return PING_INTERVAL_SECONDS;
+          return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+    return () => clearInterval(timer);
   }, []);
+
+  // Watch countdown state and handle ping triggers cleanly
+  useEffect(() => {
+    if (secondsUntilNextPing === 0) {
+      console.log(`🚀 [Keep-Alive Ticker] ${PING_INTERVAL_SECONDS}s (5m) completed! Triggering backend /health check now...`);
+      performHealthCheck();
+      setSecondsUntilNextPing(PING_INTERVAL_SECONDS);
+    } else {
+      console.log(`⏱️ [Keep-Alive Ticker] Next ping in ${secondsUntilNextPing}s`);
+    }
+  }, [secondsUntilNextPing, performHealthCheck]);
 
   const handleManualPing = () => {
     if (!isPinging) {
+      console.log(`👆 [Keep-Alive] Manual ping triggered by user click`);
       setSecondsUntilNextPing(PING_INTERVAL_SECONDS);
       performHealthCheck();
     }
@@ -127,7 +138,7 @@ export function BackendHealthStatus() {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed mb-2.5">
-              Continuously pings <code className="text-emerald-300 font-mono text-[10px]">/health</code> every 60 seconds to keep the backend warm and prevent Render sleep.
+              Continuously pings <code className="text-emerald-300 font-mono text-[10px]">/health</code> every 5 minutes (300s) to keep the backend warm and prevent Render sleep.
             </p>
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/80">
               <span>Total Pings: <strong className="text-emerald-300 font-semibold">{pingCount}</strong></span>
