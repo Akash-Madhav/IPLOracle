@@ -69,15 +69,15 @@ export async function checkBackendHealth(): Promise<{ status: string; ok: boolea
 
 /**
  * Start recurring background health ping to keep backend active and prevent idle spin-down.
- * Runs every 5 minutes (300,000 ms).
+ * Runs every 60 seconds (60,000 ms).
  */
-export function startHealthPing(intervalMs: number = 300000): () => void {
-  console.log(`🚀 [Health Service] Initialized background keep-alive for ${API_URL} (ping interval: ${intervalMs / 1000}s / 5 mins)`);
+export function startHealthPing(intervalMs: number = 60000): () => void {
+  console.log(`🚀 [Health Service] Initialized background keep-alive for ${API_URL} (ping interval: ${intervalMs / 1000}s)`);
   
   // Initial wake-up ping
   checkBackendHealth();
 
-  // Periodic 5-minute ping
+  // Periodic 60-second ping
   const intervalId = setInterval(() => {
     checkBackendHealth();
   }, intervalMs);

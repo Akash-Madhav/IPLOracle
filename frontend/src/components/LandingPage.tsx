@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Trophy, TrendingUp, Users, BarChart3, Shield, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import { AnimatedBackground } from './AnimatedBackground';
+import { BackendHealthStatus } from './BackendHealthStatus';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -57,7 +58,16 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
     <div className="min-h-screen w-full text-white relative overflow-hidden">
       <AnimatedBackground />
       
-      <div className="relative z-10 container mx-auto px-4 py-12 md:py-20">
+      <div className="relative z-10 container mx-auto px-4 py-8 md:py-12">
+        {/* Top Navbar / Health Indicator */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-6 h-6 text-orange-400" />
+            <span className="font-bold text-lg bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">IPL Oracle</span>
+          </div>
+          <BackendHealthStatus />
+        </div>
+
         {/* Hero Section */}
         <div className="flex flex-col items-center text-center mb-20 md:mb-32">
           {/* Animated Trophy Icon */}

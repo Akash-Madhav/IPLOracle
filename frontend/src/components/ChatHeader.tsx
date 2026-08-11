@@ -1,6 +1,7 @@
 import { LogOut, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
+import { BackendHealthStatus } from './BackendHealthStatus';
 
 export function ChatHeader() {
   const { user, signOut } = useAuth();
@@ -26,8 +27,9 @@ export function ChatHeader() {
           </div>
         </div>
 
-        {/* User Info and Sign Out */}
+        {/* Health Status Indicator, User Info, and Sign Out */}
         <div className="flex items-center gap-4">
+          <BackendHealthStatus />
           <div className="text-right hidden sm:block">
             <p className="text-sm text-slate-300">{user?.displayName || 'User'}</p>
             <p className="text-xs text-slate-500">{user?.email}</p>
