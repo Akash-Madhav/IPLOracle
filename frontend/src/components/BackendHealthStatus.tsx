@@ -30,7 +30,6 @@ export function BackendHealthStatus() {
       setStatus('offline');
     } finally {
       setIsPinging(false);
-      setSecondsUntilNextPing(PING_INTERVAL_SECONDS);
     }
   };
 
@@ -58,6 +57,7 @@ export function BackendHealthStatus() {
 
   const handleManualPing = () => {
     if (!isPinging) {
+      setSecondsUntilNextPing(PING_INTERVAL_SECONDS);
       performHealthCheck();
     }
   };
